@@ -1,0 +1,6 @@
+node_modules
+auth_info
+temp
+cloudflared.exe
+*.log
+.git

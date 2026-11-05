@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TALHA-MD • WhatsApp Pairing Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #090b10;
+      --card-bg: rgba(15, 20, 31, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #e11d48;
+      --primary-hover: #f43f5e;
+      --primary-glow: rgba(225, 29, 72, 0.25);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      position: relative;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Background Glow */
+    .ambient-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 50% 15%, rgba(225, 29, 72, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 80% 85%, rgba(56, 189, 248, 0.05) 0%, transparent 50%);
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .main-wrap {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    /* Top Brand Nav */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding: 0 4px;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      color: #fff;
+    }
+
+    .brand-badge-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--primary), #be123c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f59e0b;
+      box-shadow: 0 0 8px #f59e0b;
+    }
+
+    .status-dot.live {
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+
+    /* Primary Glass Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .card-top-line {
+      position: absolute;
+      top: 0;
+      left: 15%;
+      right: 15%;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    }
+
+    /* Tabs */
+    .tab-nav {
+      display: flex;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: rgba(225, 29, 72, 0.15);
+      color: #fff;
+      border: 1px solid rgba(225, 29, 72, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Banner Thumbnail */
+    .hero-thumb {
+      width: 100%;
+      height: 120px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 18px;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #000;
+    }
+
+    .hero-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .hero-thumb::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 40%, rgba(9, 11, 16, 0.85) 100%);
+    }
+
+    .hero-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      color: #fff;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+
+    .hero-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    /* Phone Input */
+    .field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .phone-input-group {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1.5px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+      margin-bottom: 14px;
+    }
+
+    .phone-input-group:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .phone-prefix {
+      padding: 0 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      background: rgba(225, 29, 72, 0.08);
+      height: 46px;
+      display: flex;
+      align-items: center;
+      border-right: 1px solid var(--card-border);
+      user-select: none;
+    }
+
+    .phone-input {
+      flex: 1;
+      height: 46px;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 0 14px;
+      font-size: 15px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 46px;
+      background: linear-gradient(135deg, var(--primary), #be123c);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--primary-hover), var(--primary));
+      transform: translateY(-1px);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Code Display Box */
+    .code-box {
+      display: none;
+      margin-top: 18px;
+      padding: 18px;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1.5px solid rgba(225, 29, 72, 0.3);
+      border-radius: 14px;
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .code-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .code-string {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: #fff;
+      margin-bottom: 12px;
+      text-shadow: 0 0 20px rgba(225, 29, 72, 0.4);
+    }
+
+    .btn-copy {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .btn-copy.copied {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--emerald);
+      color: #34d399;
+    }
+
+    /* QR Code Display View */
+    .qr-view-wrap {
+      display: none;
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .qr-frame {
+      width: 220px;
+      height: 220px;
+      margin: 0 auto 16px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+
+    .qr-frame img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    .qr-loading {
+      color: #0f172a;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Steps Guide */
+    .steps-wrap {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .steps-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 8px;
+    }
+
+    .step-num {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-item b {
+      color: #fff;
+    }
+
+    /* Connected State Card */
+    .connected-card {
+      display: none;
+      text-align: center;
+      padding: 16px 8px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .connected-badge-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1.5px solid var(--emerald);
+      color: var(--emerald);
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+      box-shadow: 0 0 24px var(--emerald-glow);
+    }
+
+    .connected-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .connected-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .btn-unlink {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-unlink:hover {
+      background: rgba(225, 29, 72, 0.15);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Footer */
+    .portal-footer {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .spinner-dark {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(15, 23, 42, 0.2);
+      border-top-color: #0f172a;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow"></div>
+
+  <div class="main-wrap">
+    
+    <!-- Top Nav -->
+    <div class="brand-header">
+      <div class="brand-badge">
+        <div class="brand-badge-icon">⚡</div>
+        <span>TALHA-MD</span>
+      </div>
+      <div class="status-pill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusLabel">Ready</span>
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card">
+      <div class="card-top-line"></div>
+
+      <!-- Segmented Method Switcher -->
+      <div class="tab-nav" id="tabNav">
+        <button class="tab-btn active" id="tabBtnCode" onclick="switchTab('code')">
+          <span>📱 Phone Code</span>
+        </button>
+        <button class="tab-btn" id="tabBtnQr" onclick="switchTab('qr')">
+          <span>📷 Scan QR</span>
+        </button>
+      </div>
+
+      <!-- Main Pairing Content -->
+      <div id="pairingSection">
+        <div class="hero-thumb">
+          <img src="/banner.png" alt="Talha-MD Banner" onerror="this.src='/spiderman_hero_poster.jpg'">
+        </div>
+
+        <!-- VIEW 1: Phone Pairing Code -->
+        <div id="viewCode">
+          <h1 class="hero-title">Link with Phone Number</h1>
+          <p class="hero-desc">Enter your number with country code to get your 8-digit WhatsApp code.</p>
+
+          <label class="field-label" for="phoneInput">Phone Number</label>
+          <div class="phone-input-group">
+            <div class="phone-prefix">+</div>
+            <input 
+              type="tel" 
+              id="phoneInput" 
+              class="phone-input" 
+              placeholder="923001234567" 
+              autocomplete="tel"
+            >
+          </div>
+
+          <button class="btn-submit" id="btnSubmit" onclick="handleGenerateCode()">
+            <span id="btnText">Get Pairing Code</span>
+          </button>
+
+          <!-- Code Box -->
+          <div class="code-box" id="codeBox">
+            <div class="code-tag">Your 8-Digit Pairing Code</div>
+            <div class="code-string" id="codeVal">---- ----</div>
+            <button class="btn-copy" id="btnCopy" onclick="handleCopyCode()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span id="copyBtnText">Copy Code</span>
+            </button>
+          </div>
+
+          <!-- Phone Steps Guide -->
+          <div class="steps-wrap">
+            <div class="steps-title">Instructions</div>
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div>Open WhatsApp &rarr; <b>Linked Devices</b>.</div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div>Tap <b>Link a Device</b> &rarr; <b>Link with phone number instead</b>.</div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div>Type the 8-digit code above to connect instantly.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: QR Code Scan -->
+        <div id="viewQr" class="qr-view-wrap">
+          <h1 class="hero-title">Scan QR Code</h1>
+          <p class="hero-desc">Open WhatsApp on your phone and point the camera at this QR code.</p>
+
+          <div class="qr-frame" id="qrFrame">
+            <div class="qr-loading" id="qrLoading">
+              <div class="spinner-dark"></div>
+              <span>Generating Live QR...</span>
+            </div>
+            <img id="qrImg" src="" alt="WhatsApp QR Code" style="display: none;">
+          </div>
+
+          <!-- QR Steps Guide -->
+          <div class="steps-wrap" style="text-align: left;">
+            <div class="steps-title">Instructions</div>
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div>Open WhatsApp &rarr; <b>Linked Devices</b>.</div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div>Tap <b>Link a Device</b> &rarr; Point your camera at this QR.</div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div>Connected in 1 second!</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Connected State -->
+      <div class="connected-card" id="connectedCard">
+        <div class="connected-badge-icon">✓</div>
+        <h2 class="connected-title">Bot Connected &amp; Online</h2>
+        <p class="connected-desc">TALHA-MD is verified and active on WhatsApp 24/7. Your commands and downloaders are live!</p>
+        <button class="btn-unlink" onclick="handleUnlink()">Unlink &amp; Connect New Account</button>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="portal-footer">
+      TALHA-MD &bull; Owner: Talha Sheikh &bull; Cloudflare Edge Network
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastBox">
+    <span id="toastMsg">Notification</span>
+  </div>
+
+  <script>
+    let activeCode = '';
+    let currentTab = 'code';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const btnCode = document.getElementById('tabBtnCode');
+      const btnQr = document.getElementById('tabBtnQr');
+      const viewCode = document.getElementById('viewCode');
+      const viewQr = document.getElementById('viewQr');
+
+      if (tab === 'code') {
+        btnCode.classList.add('active');
+        btnQr.classList.remove('active');
+        viewCode.style.display = 'block';
+        viewQr.style.display = 'none';
+      } else {
+        btnQr.classList.add('active');
+        btnCode.classList.remove('active');
+        viewCode.style.display = 'none';
+        viewQr.style.display = 'block';
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastBox');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    async function handleGenerateCode() {
+      const input = document.getElementById('phoneInput');
+      const btn = document.getElementById('btnSubmit');
+      const btnText = document.getElementById('btnText');
+      const codeBox = document.getElementById('codeBox');
+      const codeVal = document.getElementById('codeVal');
+
+      const phone = input.value.trim().replace(/[^0-9]/g, '');
+      if (!phone || phone.length < 9) {
+        showToast('⚠️ Please enter a valid number with country code');
+        input.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> Generating Code...';
+
+      try {
+        const res = await fetch('/api/pair', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        const data = await res.json();
+
+        if (data.success && data.code) {
+          activeCode = data.code;
+          codeVal.innerText = data.code;
+          codeBox.style.display = 'block';
+          btnText.innerText = 'Request New Code';
+          showToast('✅ Code ready! Copy and enter in WhatsApp');
+        } else {
+          showToast('❌ ' + (data.error || 'Failed to generate code. Try again.'));
+          btnText.innerText = 'Get Pairing Code';
+        }
+      } catch (err) {
+        showToast('❌ Network error: ' + err.message);
+        btnText.innerText = 'Get Pairing Code';
+      } finally {
+        setTimeout(() => { btn.disabled = false; }, 2000);
+      }
+    }
+
+    function handleCopyCode() {
+      if (!activeCode) return;
+      navigator.clipboard.writeText(activeCode).then(() => {
+        const btn = document.getElementById('btnCopy');
+        const txt = document.getElementById('copyBtnText');
+        btn.classList.add('copied');
+        txt.innerText = 'Copied! ✓';
+        showToast('📋 Code copied: ' + activeCode);
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          txt.innerText = 'Copy Code';
+        }, 2500);
+      });
+    }
+
+    async function handleUnlink() {
+      if (!confirm('Are you sure you want to unlink and pair a new number?')) return;
+      try {
+        await fetch('/api/reset', { method: 'POST' });
+        showToast('🔄 Session reset. Ready to link new number.');
+        document.getElementById('connectedCard').style.display = 'none';
+        document.getElementById('pairingSection').style.display = 'block';
+        document.getElementById('tabNav').style.display = 'flex';
+        document.getElementById('codeBox').style.display = 'none';
+      } catch (e) {
+        showToast('❌ Reset error: ' + e.message);
+      }
+    }
+
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        const dot = document.getElementById('statusDot');
+        const label = document.getElementById('statusLabel');
+        const pairingSec = document.getElementById('pairingSection');
+        const connectedCard = document.getElementById('connectedCard');
+        const tabNav = document.getElementById('tabNav');
+        const qrImg = document.getElementById('qrImg');
+        const qrLoading = document.getElementById('qrLoading');
+
+        if (data.status === 'connected') {
+          dot.className = 'status-dot live';
+          label.innerText = 'Connected';
+          pairingSec.style.display = 'none';
+          tabNav.style.display = 'none';
+          connectedCard.style.display = 'block';
+        } else {
+          dot.className = 'status-dot';
+          label.innerText = data.status === 'qr_ready' ? 'Scan QR' : 'Ready';
+          pairingSec.style.display = 'block';
+          tabNav.style.display = 'flex';
+          connectedCard.style.display = 'none';
+
+          // Live QR image update
+          if (data.qrCode) {
+            qrImg.src = data.qrCode;
+            qrImg.style.display = 'block';
+            qrLoading.style.display = 'none';
+          }
+
+          if (data.pairingCode && !activeCode) {
+            activeCode = data.pairingCode;
+            document.getElementById('codeVal').innerText = data.pairingCode;
+            document.getElementById('codeBox').style.display = 'block';
+          }
+        }
+      } catch (e) {}
+    }
+
+    setInterval(pollStatus, 3000);
+    pollStatus();
+  </script>
+</body>
+</html>
