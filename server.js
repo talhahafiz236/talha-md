@@ -7,6 +7,20 @@ const whatsapp = require('./lib/whatsapp');
 const messageHandler = require('./lib/handler');
 const db = require('./lib/database');
 
+const LOGS = [];
+const originalLog = console.log;
+const originalErr = console.error;
+console.log = (...args) => {
+  LOGS.push(`[INFO ${new Date().toLocaleTimeString()}] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' '));
+  if (LOGS.length > 100) LOGS.shift();
+  originalLog.apply(console, args);
+};
+console.error = (...args) => {
+  LOGS.push(`[ERR ${new Date().toLocaleTimeString()}] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' '));
+  if (LOGS.length > 100) LOGS.shift();
+  originalErr.apply(console, args);
+};
+
 const app = express();
 const PORT = config.PORT || 3005;
 
@@ -56,6 +70,12 @@ app.post('/api/reset', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// Real-time diagnostic logs endpoint
+app.get('/api/logs', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain');
+  res.send(LOGS.join('\n'));
 });
 
 app.listen(PORT, () => {
