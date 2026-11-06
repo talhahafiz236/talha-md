@@ -61,6 +61,6 @@ app.listen(PORT, () => {
   console.log(`\n======================================================`);
   console.log(`  🚀 TALHA MD SERVER IS RUNNING ON PORT ${PORT} `);
   console.log(`  🌐 Web Pairing Portal: http://localhost:${PORT}        `);
-  console.log(`  🕷️ Spider-Hero Pure Phone Pairing Active!             `);
+  console.log(`  ⚡ Obsidian Hero Pure Phone Pairing Active!            `);
   console.log(`======================================================\n`);
 });

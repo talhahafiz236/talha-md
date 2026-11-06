@@ -159,7 +159,7 @@ _Now permanently visible in this chat!_`;
           `⚡ *Status:* \`ENABLED ✅\``,
           `👁️ *Coverage:* Group & Private chats`,
           `🚨 *Action:* Deleted messages will be captured & delivered to owner!`
-        ], 'Spider-Hero Anti-Delete Shield is now ON');
+        ], 'Obsidian Anti-Delete Shield is now ON');
         await reply(card);
       } else if (opt === 'off') {
         db.set('ANTI_DELETE', false);

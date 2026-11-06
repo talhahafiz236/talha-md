@@ -15,8 +15,8 @@ module.exports = {
       await reply(theme.resultCard('🎵', 'SEARCHING & PREPARING AUDIO', [
         `🔎 *Query:* "${text}"`,
         `🎧 *Format:* HD MP3 Audio`,
-        `⚡ *Speed:* Fast Chunk Encoding...`
-      ], 'Bas 3-5 second intezar karein, gaana send ho raha hai! ⏳'));
+        `⚡ *Speed:* Multi-Engine Stream...`
+      ], 'Bas kuch second intezar karein, gaana send ho raha hai! ⏳'));
 
       try {
         const { filePath, title, author, duration } = await downloader.downloadAudio(text);
@@ -27,7 +27,7 @@ module.exports = {
             `🎤 *Artist:* ${author}`,
             `⏱️ *Duration:* ${duration}`,
             `👑 *Downloaded by:* ${config.BOT_NAME}`
-          ], 'Spider-Hero Ultra-Fast Downloader');
+          ], 'Obsidian Ultra-Fast Downloader');
 
           await sock.sendMessage(from, {
             audio: fs.readFileSync(filePath),
@@ -41,7 +41,7 @@ module.exports = {
           // Clean up temp file
           setTimeout(() => {
             try { fs.unlinkSync(filePath); } catch (e) {}
-          }, 6000);
+          }, 8000);
         } else {
           await reply(theme.errorCard('song', "Audio file generate nahi ho saki!"));
         }
@@ -83,7 +83,7 @@ module.exports = {
             `👤 *Creator:* ${author}`,
             `⏱️ *Duration:* ${duration}`,
             `⚡ *Engine:* ${config.BOT_NAME} HD`
-          ], 'Spider-Hero Ultra-Fast Video Streamer');
+          ], 'Obsidian Ultra-Fast Video Streamer');
 
           await sock.sendMessage(from, {
             video: fs.readFileSync(filePath),
@@ -92,7 +92,7 @@ module.exports = {
 
           setTimeout(() => {
             try { fs.unlinkSync(filePath); } catch (e) {}
-          }, 6000);
+          }, 8000);
         } else {
           await reply(theme.errorCard('video', "Video file generate nahi ho saki!"));
         }
@@ -115,38 +115,39 @@ module.exports = {
     desc: "Download TikTok video without watermark",
     category: "downloader",
     execute: async (sock, m, { text, reply, from, prefix }) => {
-      if (!text || !text.includes('tiktok.com')) {
+      const urlMatch = text ? text.match(/https?:\/\/[^\s]+/i) : null;
+      const link = urlMatch ? urlMatch[0].trim() : (text ? text.trim() : '');
+
+      if (!link || (!link.includes('tiktok.com') && !link.includes('douyin'))) {
         return reply(theme.errorCard('tiktok', `Sahi TikTok video link daalein!\nExample: \`${prefix}tiktok https://vm.tiktok.com/...\``));
       }
 
       await reply(theme.resultCard('⚡', 'DOWNLOADING TIKTOK', [
-        `🔗 *Link:* ${text.substring(0, 35)}...`,
+        `🔗 *Link:* ${link.substring(0, 35)}...`,
         `✨ *Watermark:* Removed (100% Clean)`,
-        `⏳ *Status:* Processing...`
+        `⏳ *Status:* Processing Video...`
       ]));
 
       try {
-        const result = await downloader.downloadTikTok(text);
+        const result = await downloader.downloadTikTok(link);
 
-        const caption = theme.resultCard('✨', 'TIKTOK HD (NO WATERMARK)', [
-          `🏷️ *Title:* ${result.title || 'TikTok Video'}`,
-          `👤 *Author:* ${result.author || 'User'}`,
-          `⚡ *Downloaded by:* ${config.BOT_NAME}`
-        ]);
+        if (result.filePath && fs.existsSync(result.filePath)) {
+          const caption = theme.resultCard('✨', 'TIKTOK HD (NO WATERMARK)', [
+            `🏷️ *Title:* ${result.title || 'TikTok Video'}`,
+            `👤 *Author:* ${result.author || 'User'}`,
+            `⚡ *Downloaded by:* ${config.BOT_NAME}`
+          ]);
 
-        if (result.videoUrl) {
-          await sock.sendMessage(from, {
-            video: { url: result.videoUrl },
-            caption: caption
-          }, { quoted: m });
-        } else if (result.filePath && fs.existsSync(result.filePath)) {
           await sock.sendMessage(from, {
             video: fs.readFileSync(result.filePath),
             caption: caption
           }, { quoted: m });
-          setTimeout(() => { try { fs.unlinkSync(result.filePath); } catch(e){} }, 6000);
+
+          setTimeout(() => {
+            try { fs.unlinkSync(result.filePath); } catch (e) {}
+          }, 8000);
         } else {
-          await reply(theme.errorCard('tiktok', "TikTok video link fetch nahi ho saka!"));
+          await reply(theme.errorCard('tiktok', "TikTok video fetch nahi ho saki! Link dobara check karein."));
         }
       } catch (e) {
         console.error('[Command .tiktok error]:', e);
@@ -159,18 +160,21 @@ module.exports = {
     desc: "Download Instagram Reel or Video",
     category: "downloader",
     execute: async (sock, m, { text, reply, from, prefix }) => {
-      if (!text || !text.includes('instagram.com')) {
+      const urlMatch = text ? text.match(/https?:\/\/[^\s]+/i) : null;
+      const link = urlMatch ? urlMatch[0].trim() : (text ? text.trim() : '');
+
+      if (!link || !link.includes('instagram.com')) {
         return reply(theme.errorCard('insta', `Sahi Instagram Reel/Post link daalein!\nExample: \`${prefix}insta https://www.instagram.com/reel/...\``));
       }
 
       await reply(theme.resultCard('📸', 'FETCHING INSTAGRAM REEL', [
-        `🔗 *Link:* ${text.substring(0, 35)}...`,
+        `🔗 *Link:* ${link.substring(0, 35)}...`,
         `🎬 *Quality:* HD 1080p Stream`,
         `⏳ *Status:* Downloading...`
       ]));
 
       try {
-        const { filePath, title } = await downloader.downloadInstagram(text);
+        const { filePath, title } = await downloader.downloadInstagram(link);
 
         if (fs.existsSync(filePath)) {
           const caption = theme.resultCard('📸', 'INSTAGRAM REEL DOWNLOADED', [
@@ -184,7 +188,9 @@ module.exports = {
             caption: caption
           }, { quoted: m });
 
-          setTimeout(() => { try { fs.unlinkSync(filePath); } catch(e){} }, 6000);
+          setTimeout(() => {
+            try { fs.unlinkSync(filePath); } catch (e) {}
+          }, 8000);
         } else {
           await reply(theme.errorCard('insta', "Instagram video fetch nahi ho saki!"));
         }

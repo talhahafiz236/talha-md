@@ -28,7 +28,7 @@ module.exports = {
 
       const text = theme.resultCard('⚡', 'SPEED & LATENCY TEST', [
         `🏓 *Response Time:* \`${latency}ms\` *(Lightning Fast)*`,
-        `🚀 *Engine:* Spider-Hero Baileys v6.7`,
+        `🚀 *Engine:* Obsidian Baileys v6.7`,
         `💾 *RAM Heap:* \`${ramUsed} MB\``,
         `🌐 *Network:* Cloudflare 24/7 Edge`,
         `🔋 *Health:* \`100% Operational\``
@@ -57,16 +57,16 @@ module.exports = {
         `👁️ *Anti-ViewOnce:* \`${s.ANTI_VIEW_ONCE ? 'ACTIVE ✅' : 'DISABLED ❌'}\``,
         `📞 *Anti-Call:* \`${s.ANTI_CALL ? 'ACTIVE ✅' : 'DISABLED ❌'}\``,
         `💾 *Memory:* \`${ramUsed} MB\``,
-        `🕸️ *Theme:* Spider-Hero Obsidian Edition`
+        `✨ *Theme:* Obsidian Hero Edition`
       ];
 
-      const text = theme.card(`${config.BOT_NAME} • ONLINE & ACTIVE`, lines, '"With great power comes great automation!" 🕷️⚡');
+      const text = theme.card(`${config.BOT_NAME} • ONLINE & ACTIVE`, lines, '"With great power comes great automation!" ⚡👑');
 
       try {
         await sock.sendMessage(from, {
           image: theme.getBannerBuffer(),
           caption: text,
-          contextInfo: theme.getAdReply(`🕷️ ${config.BOT_NAME} — HERO SYSTEM`, 'Active & Online 24/7')
+          contextInfo: theme.getAdReply(`⚡ ${config.BOT_NAME} — HERO SYSTEM`, 'Active & Online 24/7')
         }, { quoted: m });
       } catch (e) {
         await reply(text);
@@ -83,7 +83,7 @@ module.exports = {
 
       const header = `╭━━━〔 ⚡ *${fancy.bold(config.BOT_NAME.toUpperCase())} V1.0* ⚡ 〕━━━╮
 ┃ 👑 *Master:* ${config.OWNER_NAME}
-┃ 🕸️ *Edition:* Spider-Hero Obsidian
+┃ ✨ *Edition:* Obsidian Hero Edition
 ┃ ⏱️ *Uptime:* \`${uptime}\`
 ┃ ⚡ *Mode:* \`${db.get('MODE')?.toUpperCase() || 'PUBLIC'}\`
 ┃ 🕹️ *Prefix:* \`[ ${prefix} ]\`
