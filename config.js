@@ -10,7 +10,7 @@ module.exports = {
   AUTHOR: process.env.AUTHOR || "Talha",
   PREFIX: process.env.PREFIX || ".",
 
-  // Spider-Hero Theme Poster & Avatars (Custom Spider-Man Banner Loaded)
+  // Theme Posters & Avatars (Obsidian Hero Edition)
   MENU_IMAGE_URL: process.env.MENU_IMAGE_URL || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
   ALIVE_IMAGE_URL: process.env.ALIVE_IMAGE_URL || "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
   THUMB_URL: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&auto=format&fit=crop&q=80",
