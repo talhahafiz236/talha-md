@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: talha-md
+    env: docker
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: "3005"
+      - key: BOT_NAME
+        value: "Talha-MD"
+      - key: OWNER_NAME
+        value: "Talha Sheikh"
+      - key: OWNER_NUMBER
+        value: "923426767199"
+      - key: PREFIX
+        value: "."
+      - key: MODE
+        value: "public"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SESSION_ID
+        sync: false

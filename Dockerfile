@@ -1,37 +1,40 @@
-FROM node:20-bullseye-slim
+FROM node:20-bookworm-slim
 
-# Install system dependencies (ffmpeg, python3 for yt-dlp, curl, git)
-RUN apt-get update && apt-get install -y \
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NODE_ENV=production
+
+# Install essential runtime packages (ffmpeg, curl, git, ca-certificates, python3)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    python3 \
-    python3-pip \
     curl \
     git \
+    ca-certificates \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp
+# Install yt-dlp standalone binary
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
     && chmod a+rx /usr/local/bin/yt-dlp
 
 WORKDIR /app
 
-# Copy dependency manifests
+# Copy package manifests
 COPY package*.json ./
 
 # Install npm dependencies
-RUN npm ci --omit=dev || npm install --production
+RUN npm install --omit=dev --no-audit --no-fund
 
-# Copy application source
+# Copy all application files
 COPY . .
 
-# Ensure write permissions for auth_info, temp, and data directories
+# Ensure runtime directories exist with full read/write permissions
 RUN mkdir -p auth_info temp data public \
     && chmod -R 777 /app
 
-# Expose server port (7860 for Hugging Face Spaces, 3005 for local/Render)
-EXPOSE 7860 3005
+# Expose port (Render uses dynamic PORT env variable)
+EXPOSE 3005 10000
 
-ENV PORT=7860
+ENV PORT=3005
 
 # Start TALHA-MD
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
