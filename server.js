@@ -40,6 +40,7 @@ app.get('/api/status', (req, res) => {
     status: whatsapp.status,
     pairingCode: whatsapp.pairingCode,
     qrCode: whatsapp.qrCodeDataUrl,
+    sessionId: (whatsapp.status === 'connected') ? whatsapp.getSessionId() : null,
     botName: config.BOT_NAME,
     owner: config.OWNER_NAME,
     mode: db.get('MODE'),
