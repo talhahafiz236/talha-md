@@ -18,11 +18,14 @@ FROM base AS build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git node-gyp pkg-config python-is-python3
+    apt-get install --no-install-recommends -y build-essential git node-gyp pkg-config python-is-python3 && \
+    git config --global url."https://github.com/".insteadOf "git@github.com:" && \
+    git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
+    git config --global url."https://github.com/".insteadOf "git://github.com/"
 
 # Install node modules
-COPY .npmrc package.json ./
-RUN npm install
+COPY package*.json ./
+RUN npm install --omit=dev
 
 # Copy application code
 COPY . .

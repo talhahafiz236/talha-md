@@ -86,6 +86,7 @@
   },
   "overrides": {
     "@whiskeysockets/baileys": "npm:gifted-baileys@^2.5.8",
+    "libsignal": "git+https://github.com/WhiskeySockets/libsignal-node.git",
     "form-data": "^4.0.0",
     "protobufjs": "^7.0.0",
     "jsonpath-plus": "^10.0.0",
