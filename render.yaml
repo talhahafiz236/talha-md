@@ -3,21 +3,37 @@ services:
     name: talha-md
     env: docker
     plan: free
-    region: frankfurt
+    dockerfilePath: Dockerfile
     envVars:
-      - key: PORT
-        value: "3005"
-      - key: BOT_NAME
-        value: "Talha-MD"
-      - key: OWNER_NAME
-        value: "Talha Sheikh"
+      - key: SESSION_ID
+        sync: false
       - key: OWNER_NUMBER
         value: "923426767199"
+      - key: BOT_NAME
+        value: "TALHA-MD"
+      - key: OWNER_NAME
+        value: "Talha Sheikh"
       - key: PREFIX
         value: "."
       - key: MODE
-        value: "public"
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: SESSION_ID
-        sync: false
+        value: "both"
+      - key: CHANNEL_URL
+        value: "https://whatsapp.com/channel/0029Vb8l5Yd2f3EBHMz87B2S"
+      - key: NEWSLETTER_JID
+        value: "120363431246808172@newsletter"
+      - key: NEWSLETTER_NAME
+        value: "TALHA MD BOT"
+      - key: ALWAYS_ONLINE
+        value: "true"
+      - key: AUTO_BIO
+        value: "true"
+      - key: AUTO_STATUS_SEEN
+        value: "false"
+      - key: AUTO_STATUS_REACT
+        value: "false"
+      - key: AUTO_TYPING
+        value: "false"
+      - key: AUTO_RECORDING
+        value: "false"
+      - key: ANTICALL
+        value: "false"

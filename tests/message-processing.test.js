@@ -1,0 +1,228 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+
+const {
+    extractMessageText,
+    safeSend,
+    handleMessages,
+    installNewsletterForwarding,
+    plugins,
+} = require('../handler');
+const {
+    isDuplicateMessage,
+    rememberMessageIfContent,
+} = require('../lib/message-gate');
+const {
+    UNDECRYPTABLE_LOG_THRESHOLD,
+    trackUndecryptableMessage,
+} = require('../lib/session-recovery');
+const config = require('../config');
+const menuPlugin = require('../plugins/menu');
+const autoReactPlugin = require('../plugins/auto-react-messages');
+const database = require('../lib/database');
+
+test('extracts commands from nested WhatsApp wrappers', () => {
+    const wrapped = {
+        ephemeralMessage: {
+            message: {
+                viewOnceMessageV2: {
+                    message: {
+                        extendedTextMessage: { text: '\uFEFF .ping  ' },
+                    },
+                },
+            },
+        },
+    };
+
+    assert.equal(extractMessageText(wrapped), '.ping');
+});
+
+test('extracts interactive response text without a live WhatsApp connection', () => {
+    const message = {
+        interactiveResponseMessage: {
+            nativeFlowResponseMessage: {
+                paramsJson: '{"id":"alive"}',
+            },
+        },
+    };
+
+    assert.equal(extractMessageText(message), '{"id":"alive"}');
+});
+
+test('adds newsletter attribution to plugin sends in groups and inboxes', async () => {
+    const sent = [];
+    const sock = {
+        sendMessage: async (jid, content) => { sent.push({ jid, content }); return { key: { id: 'sent' } }; },
+    };
+    installNewsletterForwarding(sock);
+    await sock.sendMessage('123@g.us', { text: 'group reply' });
+    await sock.sendMessage('254700000000@s.whatsapp.net', { image: Buffer.from('image'), caption: 'inbox reply' });
+    await sock.sendMessage('123@g.us', { delete: { remoteJid: '123@g.us', id: 'old' } });
+
+    assert.equal(sent[0].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, '120363385750849202@newsletter');
+    assert.equal(sent[1].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, '120363385750849202@newsletter');
+    assert.equal(sent[2].content.contextInfo, undefined);
+});
+
+test('does not mark an empty delivery as seen before the real message arrives', () => {
+    const seen = new Set();
+    const stub = { key: { id: 'same-message' } };
+    const real = { key: { id: 'same-message' }, message: { conversation: '.ping' } };
+
+    assert.equal(isDuplicateMessage(stub, seen), false);
+    assert.equal(rememberMessageIfContent(stub, seen), false);
+    assert.equal(isDuplicateMessage(real, seen), false);
+    assert.equal(rememberMessageIfContent(real, seen), true);
+    assert.equal(isDuplicateMessage(real, seen), true);
+});
+
+test('sends replies to LID chats after attempting session establishment', async () => {
+    const calls = [];
+    const sock = {
+        assertSessions: async jids => calls.push({ type: 'assertSessions', jids }),
+        sendMessage: async (jid, content) => {
+            calls.push({ type: 'sendMessage', jid, content });
+            return { key: { id: 'reply' } };
+        },
+    };
+
+    const result = await safeSend(sock, '123456789@lid', { text: 'pong' });
+
+    assert.equal(result.key.id, 'reply');
+    assert.deepEqual(calls, [
+        { type: 'assertSessions', jids: ['123456789@lid'] },
+        { type: 'sendMessage', jid: '123456789@lid', content: { text: 'pong' } },
+    ]);
+});
+
+test('routes a prefixed command to a plugin without a live WhatsApp connection', async () => {
+    const sent = [];
+    const sock = {
+        sendMessage: async (jid, content) => {
+            sent.push({ jid, content });
+            return { key: { id: `reply-${sent.length}` } };
+        },
+        sendPresenceUpdate: async () => {},
+    };
+
+    await handleMessages(sock, {
+        key: {
+            id: 'incoming-ping',
+            remoteJid: '254700000000@s.whatsapp.net',
+            fromMe: false,
+        },
+        message: { conversation: '.ping' },
+    });
+
+    assert.equal(sent.length, 2);
+    assert.equal(sent[0].jid, '254700000000@s.whatsapp.net');
+    assert.match(sent[0].content.text, /Pinging/);
+    assert.match(sent[1].content.caption, /\*Ping:\*/);
+    assert.equal(sent[1].content.buttons, undefined);
+});
+
+test('prefix-free mode ignores self messages and ordinary text but accepts bare commands', async () => {
+    const oldPrefix = config.PREFIX;
+    const sent = [];
+    const sock = {
+        sendMessage: async (jid, content) => {
+            sent.push({ jid, content });
+            return { key: { id: `reply-${sent.length}` } };
+        },
+        sendPresenceUpdate: async () => {},
+        user: { id: '254700000000:1@s.whatsapp.net' },
+    };
+
+    try {
+        config.PREFIX = 'none';
+
+        await handleMessages(sock, {
+            key: { id: 'self-menu', remoteJid: '254700000000@s.whatsapp.net', fromMe: true },
+            message: { conversation: 'Menu' },
+        });
+        assert.equal(sent.length, 0);
+
+        await handleMessages(sock, {
+            key: {
+                id: 'echoed-self-menu',
+                remoteJid: '120363000000000000@g.us',
+                participant: '254700000000@s.whatsapp.net',
+                fromMe: false,
+            },
+            message: { conversation: 'Menu' },
+        });
+        assert.equal(sent.length, 0);
+
+        await handleMessages(sock, {
+            key: { id: 'ordinary-text', remoteJid: '254700000001@s.whatsapp.net', fromMe: false },
+            message: { conversation: 'this is ordinary conversation' },
+        });
+        assert.equal(sent.length, 0);
+
+        await handleMessages(sock, {
+            key: { id: 'bare-ping', remoteJid: '254700000001@s.whatsapp.net', fromMe: false },
+            message: { conversation: 'ping' },
+        });
+        assert.ok(sent.some(item => /Pinging/.test(item.content.text)));
+    } finally {
+        config.PREFIX = oldPrefix;
+    }
+});
+
+test('undecryptable-message tracking only logs and resets its counter', () => {
+    const logs = [];
+    let state = { count: 0 };
+
+    for (let i = 0; i < UNDECRYPTABLE_LOG_THRESHOLD - 1; i++) {
+        state = trackUndecryptableMessage(state, count => logs.push(count));
+    }
+    assert.equal(logs.length, 0);
+    assert.equal(state.count, UNDECRYPTABLE_LOG_THRESHOLD - 1);
+
+    state = trackUndecryptableMessage(state, count => logs.push(count));
+    assert.deepEqual(logs, [UNDECRYPTABLE_LOG_THRESHOLD]);
+    assert.deepEqual(state, { count: 0, thresholdReached: true });
+});
+
+test('menu categorizes every live command exactly once without button payloads', async () => {
+    const categoryMap = menuPlugin._buildCategoryMap(plugins);
+    const registry = new Set(plugins.flatMap(plugin => plugin.commands || []).map(String));
+    const assigned = [...categoryMap.values()].flatMap(commands => [...commands]);
+    assert.equal(new Set(assigned).size, registry.size);
+    assert.deepEqual([...new Set(assigned)].sort(), [...registry].sort());
+
+    const sent = [];
+    await menuPlugin.run({}, { message: { conversation: '.menu' }, key: { id: 'menu-test' } }, [], {
+        prefix: '.',
+        contextInfo: {},
+        safeSend: async content => sent.push(content),
+    });
+    assert.ok(sent.some(content => content.image && /COMMAND CATEGORIES/.test(content.caption)));
+    assert.ok(sent.every(content => content.buttons === undefined));
+});
+
+test('database values are encrypted and generic auto-reactions are text-toggle controlled', async () => {
+    const encrypted = database.encrypt('AUTO_REACT_MESSAGES=true');
+    assert.notEqual(encrypted, 'AUTO_REACT_MESSAGES=true');
+    assert.equal(database.decrypt(encrypted), 'AUTO_REACT_MESSAGES=true');
+
+    const oldValue = config.AUTO_REACT_MESSAGES;
+    const sent = [];
+    const sock = { sendMessage: async (jid, content) => sent.push({ jid, content }) };
+    try {
+        config.AUTO_REACT_MESSAGES = true;
+        const message = {
+            key: { id: 'auto-react-1', remoteJid: '254700000099@s.whatsapp.net', fromMe: false },
+            message: { conversation: 'hello Silva' },
+        };
+        await autoReactPlugin.onMessage(sock, message, 'hello Silva', { jid: message.key.remoteJid });
+        await autoReactPlugin.onMessage(sock, { ...message, key: { ...message.key, id: 'auto-react-2' } }, 'hello again', { jid: message.key.remoteJid });
+        assert.equal(sent.length, 1);
+        assert.ok(sent[0].content.react);
+        assert.equal(sent[0].content.buttons, undefined);
+    } finally {
+        config.AUTO_REACT_MESSAGES = oldValue;
+    }
+});

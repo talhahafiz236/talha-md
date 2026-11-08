@@ -1,0 +1,42 @@
+{
+  "theme": "TALHA MD",
+  "AUTHOR": "Talha Sheikh",
+  "LANGUAGE": "English",
+  "LANGCODE": "en",
+  "STRINGS": {
+    "global": {
+      "botName": "⚡ TALHA-MD ⚡",
+      "body": "Nexus Neural WhatsApp Assistant",
+      "greet": "Talha",
+      "greet2": "Hey Talha",
+      "pic1": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+      "pic2": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
+      "pic3": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+      "pic4": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
+      "pic5": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+      "pic6": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
+      "pic7": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+      "dotbody": "⚡ TALHA-MD Neural Core is Online.",
+      "promote": "👑 *Admin Privilege Granted.*",
+      "demote": "🔻 *Admin Privilege Removed.*",
+      "antlink": "🚫 *Link Detected! Auto-Defense Action Taken.*",
+      "mention": "❗ Please mention a user.",
+      "title": "⚡ TALHA-MD ⚡",
+      "footer": "⚡ TALHA-MD • Engineered for Talha Sheikh",
+      "by": "Created by: Talha Sheikh",
+      "success": "✓ Operation Completed Successfully",
+      "wait": "⏳ *Processing Request with TALHA-MD Core...*",
+      "admin": "⛔ *Access Denied:* This command is reserved for Group Admins.",
+      "botAdmin": "❗ *Permission Required:* Please give TALHA-MD Admin role first.",
+      "owner": "⛔ *Restricted Area:* Reserved exclusively for the Owner (Talha Sheikh).",
+      "group": "👥 This feature is designed for Group chats.",
+      "private": "🔒 This feature is for Private DM chats.",
+      "bot": "⚠️ Feature available for the bot number only.",
+      "alive": "⚡ *TALHA-MD ONLINE* • All Neural Systems Nominal.",
+      "aliveEmoji": "⚡"
+    },
+    "error": {
+      "text": "⚠️ *TALHA-MD Core Notice:* An error occurred. Please retry in a moment."
+    }
+  }
+}

@@ -1,33 +1,57 @@
-require('dotenv').config();
+const fs = require('fs');
+// Load .env first (standard dotenv), then config.env (overrides .env if both exist)
+if (fs.existsSync('.env')) require('dotenv').config({ path: './.env' });
+if (fs.existsSync('config.env')) require('dotenv').config({ path: './config.env', override: true });
+
+function toBool(val, defaultOn = true) {
+    if (val === undefined || val === null || val === '') return defaultOn;
+    return val.toLowerCase() !== 'false';
+}
 
 module.exports = {
-  // Bot Identity & Branding
-  BOT_NAME: process.env.BOT_NAME || "Talha-MD",
-  BOT_VERSION: "1.0.0",
-  OWNER_NAME: process.env.OWNER_NAME || "Talha Sheikh",
-  OWNER_NUMBER: process.env.OWNER_NUMBER || "923426767199",
-  PACK_NAME: process.env.PACK_NAME || "Created By Talha",
-  AUTHOR: process.env.AUTHOR || "Talha",
-  PREFIX: process.env.PREFIX || ".",
-
-  // Theme Posters & Avatars (Obsidian Hero Edition)
-  MENU_IMAGE_URL: process.env.MENU_IMAGE_URL || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
-  ALIVE_IMAGE_URL: process.env.ALIVE_IMAGE_URL || "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
-  THUMB_URL: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&auto=format&fit=crop&q=80",
-  SUPPORT_CHANNEL: process.env.SUPPORT_CHANNEL || "https://whatsapp.com/channel/0029Vaexample",
-
-  // Default Operational Settings
-  MODE: process.env.MODE || "public", // 'public' | 'private'
-  AUTO_STATUS_SEEN: process.env.AUTO_STATUS_SEEN !== "false", // true
-  AUTO_STATUS_REACT: process.env.AUTO_STATUS_REACT !== "false", // true
-  AUTO_STATUS_EMOJI: process.env.AUTO_STATUS_EMOJI || "❤️",
-  ANTI_DELETE: process.env.ANTI_DELETE !== "false", // true
-  ANTI_VIEW_ONCE: process.env.ANTI_VIEW_ONCE !== "false", // true
-  ANTI_CALL: process.env.ANTI_CALL === "true", // false by default
-  REJECT_CALL_MSG: "*_Talha Sheikh bhai busy hain, please call mat karein!_* 📵",
-  ALWAYS_ONLINE: process.env.ALWAYS_ONLINE === "true", // false by default
-  AUTO_TYPING: process.env.AUTO_TYPING === "true", // false by default
-
-  // Server
-  PORT: process.env.PORT || 3005
+    SESSION_ID:            process.env.SESSION_ID || "",
+    PREFIX:                process.env.PREFIX || ".",
+    BOT_NAME:              process.env.BOT_NAME || "TALHA MD",
+    OWNER_NUMBER:          process.env.OWNER_NUMBER || "923426767199",
+    OWNER_NAME:            process.env.OWNER_NAME || "Talha Sheikh",
+    CHANNEL_URL:           process.env.CHANNEL_URL || "https://whatsapp.com/channel/0029Vb8l5Yd2f3EBHMz87B2S",
+    NEWSLETTER_JID:        process.env.NEWSLETTER_JID || "120363431246808172@newsletter",
+    NEWSLETTER_NAME:       process.env.NEWSLETTER_NAME || "⚡ TALHA-MD OFFICIAL ⚡",
+    DESCRIPTION:           process.env.DESCRIPTION || "TALHA MD — Ultimate Multi-Device Assistant",
+    ALIVE_IMG:             process.env.ALIVE_IMG || "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+    LIVE_MSG:              process.env.LIVE_MSG || "⚡ TALHA MD is Online & Ready!",
+    MODE:                  process.env.MODE || "both", // 'both' allows anyone (public) to use in group and DM
+    AUTO_STATUS_SEEN:      toBool(process.env.AUTO_STATUS_SEEN,      false),
+    AUTO_STATUS_REACT:     toBool(process.env.AUTO_STATUS_REACT,     false),
+    AUTO_STATUS_REPLY:     toBool(process.env.AUTO_STATUS_REPLY,     false),
+    AUTO_STATUS_MSG:       process.env.AUTO_STATUS_MSG || "Seen by TALHA MD",
+    CUSTOM_REACT_EMOJIS:   process.env.CUSTOM_REACT_EMOJIS || "❤️,🔥,💯,😍,👏,💙,🙌",
+    Status_Saver:          process.env.Status_Saver  || process.env.STATUS_SAVER  || 'false',
+    STATUS_REPLY:          process.env.STATUS_REPLY  || 'false',
+    STATUS_MSG:            process.env.STATUS_MSG    || 'TALHA MD ⚡ VIEWED YOUR STATUS',
+    READ_MESSAGE:          toBool(process.env.READ_MESSAGE,          false),
+    AUTO_REACT_NEWSLETTER: toBool(process.env.AUTO_REACT_NEWSLETTER, true),
+    ANTI_BAD:              toBool(process.env.ANTI_BAD,              false),
+    ALWAYS_ONLINE:         toBool(process.env.ALWAYS_ONLINE,         true),
+    AUTO_TYPING:           toBool(process.env.AUTO_TYPING,           false),
+    AUTO_RECORDING:        toBool(process.env.AUTO_RECORDING,        false),
+    AUTO_BIO:              toBool(process.env.AUTO_BIO,              true),
+    AUTO_REACT_MESSAGES:   toBool(process.env.AUTO_REACT_MESSAGES,   false),
+    DELETE_LINKS:          toBool(process.env.DELETE_LINKS,          false),
+    ANTIDELETE_GROUP:      toBool(process.env.ANTIDELETE_GROUP,      true),
+    ANTIDELETE_PRIVATE:    toBool(process.env.ANTIDELETE_PRIVATE,    true),
+    ANTILINK:              toBool(process.env.ANTILINK,               false),
+    ANTICALL:              toBool(process.env.ANTICALL,               false),
+    ANTIVV:                toBool(process.env.ANTIVV,                 true),
+    DEBUG:                 toBool(process.env.DEBUG,                 false),
+    THEME:                 (process.env.THEME || 'talha').toLowerCase().trim(),
+    GREETING:              process.env.GREETING || '',
+    APP_URL:               process.env.APP_URL || '',
+    INSTAGRAM_SESSION:     process.env.INSTAGRAM_SESSION || '',
+    AGENT_API_KEY:         process.env.AGENT_API_KEY || process.env.OPENAI_API_KEY || '',
+    AGENT_API_URL:         process.env.AGENT_API_URL || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+    AGENT_MODEL:           process.env.AGENT_MODEL || process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    AGENT_MAX_STEPS:       parseInt(process.env.AGENT_MAX_STEPS || '5', 10),
+    GEMINI_API_KEY:        process.env.GEMINI_API_KEY || '',
+    DATABASE_URL:          process.env.DATABASE_URL || '',
 };

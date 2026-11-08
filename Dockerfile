@@ -1,40 +1,46 @@
-FROM node:20-bookworm-slim
+# syntax = docker/dockerfile:1
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV NODE_ENV=production
+# Adjust NODE_VERSION as desired
+ARG NODE_VERSION=22.21.1
+FROM node:${NODE_VERSION}-slim AS base
 
-# Install essential runtime packages (ffmpeg, curl, git, ca-certificates, python3)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    curl \
-    git \
-    ca-certificates \
-    python3 \
-    && rm -rf /var/lib/apt/lists/*
+LABEL fly_launch_runtime="Node.js"
 
-# Install yt-dlp standalone binary
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod a+rx /usr/local/bin/yt-dlp
-
+# Node.js app lives here
 WORKDIR /app
 
-# Copy package manifests
-COPY package*.json ./
+# Set production environment
+ENV NODE_ENV="production"
 
-# Install npm dependencies
-RUN npm install --omit=dev --no-audit --no-fund
 
-# Copy all application files
+# Throw-away build stage to reduce size of final image
+FROM base AS build
+
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential git node-gyp pkg-config python-is-python3
+
+# Install node modules
+COPY .npmrc package.json ./
+RUN npm install
+
+# Copy application code
 COPY . .
 
-# Ensure runtime directories exist with full read/write permissions
-RUN mkdir -p auth_info temp data public \
-    && chmod -R 777 /app
 
-# Expose port (Render uses dynamic PORT env variable)
-EXPOSE 3005 10000
+# Final stage for app image
+FROM base
 
-ENV PORT=3005
+# Install packages needed for deployment including ffmpeg, python3, and yt-dlp
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y ffmpeg python3 curl && \
+    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    chmod a+rx /usr/local/bin/yt-dlp && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Start TALHA-MD
-CMD ["node", "server.js"]
+# Copy built application
+COPY --from=build /app /app
+
+# Start the server by default, this can be overwritten at runtime
+EXPOSE 3000
+CMD [ "npm", "run", "start" ]
