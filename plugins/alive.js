@@ -43,8 +43,8 @@ module.exports = {
         const botName  = 'TALHA-MD';
         const fs = require('fs');
         const path = require('path');
-        const localHero = path.join(__dirname, '../assets/talha_md_hero.jpg');
-        const imageUrl = fs.existsSync(localHero) ? localHero : (config.ALIVE_IMG || t.pic1 || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80');
+        const localHero = path.join(__dirname, '../assets/talha_md_card.jpg');
+        const imageUrl = fs.existsSync(localHero) ? localHero : (t.pic2 || config.ALIVE_IMG || 'https://files.catbox.moe/ie7zbn.jpg');
 
         const caption =
 `⚡ *𝗧𝗔𝗟𝗛𝗔-𝗠𝗗 𝗜𝗦 𝗢𝗡𝗟𝗜𝗡𝗘* ⚡

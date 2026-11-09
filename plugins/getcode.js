@@ -19,7 +19,7 @@ async function fetchPairCode(phoneNumber) {
 }
 
 module.exports = {
-    commands:    ['getcode', 'paircode', 'getpair', 'sessioncode', 'connectbot'],
+    commands:    ['getcode', 'sessioncode', 'connectbot'],
     description: 'Fetch a WhatsApp pair code to connect your bot',
     usage:       '.getcode 923XXXXXXXXX',
     permission:  'public',
@@ -77,9 +77,13 @@ module.exports = {
             // Send to DM for privacy (not in group)
             if (jid?.endsWith('@g.us')) {
                 await sock.sendMessage(sender, { text: text, contextInfo }, { quoted: message });
+                await new Promise(r => setTimeout(r, 400));
+                await sock.sendMessage(sender, { text: formatted });
                 await reply(fmt(`✅ Pair code sent to your DM — check it there.`));
             } else {
                 await sock.sendMessage(jid, { text: text, contextInfo }, { quoted: message });
+                await new Promise(r => setTimeout(r, 400));
+                await sock.sendMessage(jid, { text: formatted });
             }
 
         } catch (err) {

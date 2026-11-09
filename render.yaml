@@ -4,15 +4,20 @@ services:
     env: docker
     plan: free
     dockerfilePath: Dockerfile
+    healthCheckPath: /health
     envVars:
       - key: SESSION_ID
         sync: false
       - key: OWNER_NUMBER
         value: "923426767199"
       - key: BOT_NAME
-        value: "TALHA-MD"
+        value: "TALHA MD"
       - key: OWNER_NAME
         value: "Talha Sheikh"
+      - key: THEME
+        value: "talha"
+      - key: ALIVE_IMG
+        value: "https://files.catbox.moe/cpm6od.jpg"
       - key: PREFIX
         value: "."
       - key: MODE
@@ -22,7 +27,7 @@ services:
       - key: NEWSLETTER_JID
         value: "120363431246808172@newsletter"
       - key: NEWSLETTER_NAME
-        value: "TALHA MD BOT"
+        value: "⚡ TALHA-MD OFFICIAL ⚡"
       - key: ALWAYS_ONLINE
         value: "true"
       - key: AUTO_BIO

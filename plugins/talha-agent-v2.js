@@ -87,7 +87,7 @@ async function runLocalAction(sock, message, query, ctx) {
     // Reuse the mature legacy action router for deterministic commands only.
     // Conversational requests continue through Agent v2 and ch.at.
     if (ACTION_INTENT.test(query)) {
-        const legacy = require('./silva-agent');
+        const legacy = require('./talha-agent');
         await legacy.run(sock, message, query.split(/\s+/).filter(Boolean), ctx);
         return true;
     }
@@ -133,10 +133,10 @@ module.exports = {
             if (await runLocalAction(sock, message, query, ctx)) return;
             await reply('🧠 Thinking...');
             const result = await runAgent(query, { ...ctx, sock, message });
-            return reply(`🤖 *Silva*\n\n${result.text}`);
+            return reply(`🤖 *TALHA-MD*\n\n${result.text}`);
         } catch (error) {
-            console.error(`[SilvaAgent] ${error.message}`);
-            return reply('❌ Silva could not complete that request. Please try again.');
+            console.error(`[TalhaAgent] ${error.message}`);
+            return reply('❌ TALHA-MD could not complete that request. Please try again.');
         }
     }
 };

@@ -678,7 +678,7 @@ module.exports = [
             const externalAdReply = {
                 title:                 'Instagram Download',
                 body:                  `Powered by ${botName}`,
-                thumbnailUrl:          getStr('pic1') || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
+                thumbnailUrl:          getStr('pic1') || 'https://files.catbox.moe/cpm6od.jpg',
                 sourceUrl:             url,
                 mediaType:             1,
                 renderLargerThumbnail: true,

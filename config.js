@@ -1,7 +1,7 @@
 const fs = require('fs');
-// Load .env first (standard dotenv), then config.env (overrides .env if both exist)
-if (fs.existsSync('.env')) require('dotenv').config({ path: './.env' });
-if (fs.existsSync('config.env')) require('dotenv').config({ path: './config.env', override: true });
+// Load .env first (standard dotenv), then config.env for local defaults (never overwrite cloud env vars)
+if (fs.existsSync('.env')) require('dotenv').config({ path: './.env', override: false });
+if (fs.existsSync('config.env')) require('dotenv').config({ path: './config.env', override: false });
 
 function toBool(val, defaultOn = true) {
     if (val === undefined || val === null || val === '') return defaultOn;
@@ -18,7 +18,7 @@ module.exports = {
     NEWSLETTER_JID:        process.env.NEWSLETTER_JID || "120363431246808172@newsletter",
     NEWSLETTER_NAME:       process.env.NEWSLETTER_NAME || "⚡ TALHA-MD OFFICIAL ⚡",
     DESCRIPTION:           process.env.DESCRIPTION || "TALHA MD — Ultimate Multi-Device Assistant",
-    ALIVE_IMG:             process.env.ALIVE_IMG || "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+    ALIVE_IMG:             process.env.ALIVE_IMG || "https://files.catbox.moe/cpm6od.jpg",
     LIVE_MSG:              process.env.LIVE_MSG || "⚡ TALHA MD is Online & Ready!",
     MODE:                  process.env.MODE || "both", // 'both' allows anyone (public) to use in group and DM
     AUTO_STATUS_SEEN:      toBool(process.env.AUTO_STATUS_SEEN,      false),

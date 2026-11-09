@@ -1,23 +1,33 @@
-# fly.toml app configuration file generated for silva-md-bot on 2026-06-21T19:37:36Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
-app = 'silva-md-bot'
-primary_region = 'iad'
+# fly.toml app configuration file for TALHA-MD
+app = 'talha-md'
+primary_region = 'sin'
 
 [build]
 
+[env]
+  PORT = '3000'
+  BOT_NAME = 'TALHA MD'
+  OWNER_NAME = 'Talha Sheikh'
+  OWNER_NUMBER = '923426767199'
+  THEME = 'talha'
+  MODE = 'both'
+
 [http_service]
-  internal_port = 8080
+  internal_port = 3000
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = 'off'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
+  [[http_service.checks]]
+    grace_period = '30s'
+    interval = '30s'
+    method = 'GET'
+    timeout = '10s'
+    path = '/health'
+
 [[vm]]
-  memory = '1gb'
+  memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256

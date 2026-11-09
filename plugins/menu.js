@@ -6,7 +6,7 @@ const config  = require('../config');
 const { getStr } = require('../lib/theme');
 const moment  = require('moment-timezone');
 
-const WEBSITE = 'https://github.com/talha-md';
+const WEBSITE = 'https://github.com/talhahafiz236/talha-md';
 const TZ      = 'Asia/Karachi';
 
 // ── Category definitions ──────────────────────────────────────────────────────
@@ -290,7 +290,7 @@ module.exports = {
         const botName = getStr('botName') || config.BOT_NAME || 'TALHA MD';
         const mode    = (config.MODE || 'public').toUpperCase();
         const pfx     = prefix || '.';
-        const imgUrl  = getStr('pic1') || config.ALIVE_IMG || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80';
+        const imgUrl  = getStr('pic1') || config.ALIVE_IMG || 'https://files.catbox.moe/cpm6od.jpg';
 
         const rawCmd = (
             message.message?.extendedTextMessage?.text ||
@@ -339,7 +339,7 @@ module.exports = {
         // ── .menu — compact overview ─────────────────────────────────────────
         const menuText = buildCompactMenu(plugins, pfx, botName, mode, categoryMap);
 
-        // Send the Spiderman branded image and text menu
+        // Send the Robot branded image and text menu
         const localHero = path.join(__dirname, '../assets/talha_md_hero.jpg');
         const heroBuffer = fs.existsSync(localHero) ? fs.readFileSync(localHero) : null;
         try {

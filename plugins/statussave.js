@@ -42,7 +42,7 @@ module.exports = {
                     externalAdReply: {
                         title:        'Status Saved ✅',
                         body:         (getStr('botName') || 'TALHA MD') + ' · Status Downloader',
-                        thumbnailUrl: getStr('pic1') || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
+                        thumbnailUrl: getStr('pic3') || 'https://files.catbox.moe/ncgbn5.jpg',
                         mediaType:    1
                     }
                 }

@@ -1,6 +1,8 @@
 'use strict';
 
 const os = require('os');
+const fs = require('fs');
+const path = require('path');
 const { getStr } = require('../lib/theme');
 
 module.exports = {
@@ -12,7 +14,7 @@ module.exports = {
     run: async (sock, message, args, { sender, contextInfo }) => {
         try {
             const botName = getStr('botName') || 'TALHA MD';
-            const pic     = getStr('pic1') || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80';
+            const pic     = getStr('pic3') || 'https://files.catbox.moe/ncgbn5.jpg';
 
             const uptime  = process.uptime();
             const h = Math.floor(uptime / 3600);
@@ -39,8 +41,12 @@ module.exports = {
 
 ✨ _Powered by ${botName}_`;
 
+            const localHero = path.join(__dirname, '../assets/talha_md_welcome.jpg');
+            const heroBuffer = fs.existsSync(localHero) ? fs.readFileSync(localHero) : null;
+            const imgPayload = heroBuffer ? { image: heroBuffer } : { image: { url: pic } };
+
             await sock.sendMessage(sender, {
-                image:   { url: pic },
+                ...imgPayload,
                 caption,
                 contextInfo
             }, { quoted: message });

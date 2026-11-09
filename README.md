@@ -4,11 +4,11 @@
 
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=SILVA%20MD%20BOT&fontSize=70&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Next-Gen%20WhatsApp%20Automation&descAlignY=60&descSize=20" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=TALHA%20MD%20BOT&fontSize=70&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Next-Gen%20WhatsApp%20Automation&descAlignY=60&descSize=20" width="100%"/>
 
 <br>
 
-<img src="./data/silvamdboticon.png" width="300"/>
+<img src="./assets/talha_md_hero.jpg" width="720"/>
 
 <br><br>
 
@@ -17,10 +17,10 @@
 <br>
 
 <p>
-<a href="https://github.com/talha-md/talha-md/stargazers"><img src="https://img.shields.io/github/stars/talha-md/talha-md?style=for-the-badge&logo=github&logoColor=white&labelColor=0d1117&color=FF00A6" /></a>
-<a href="https://github.com/talha-md/talha-md/network/members"><img src="https://img.shields.io/github/forks/talha-md/talha-md?style=for-the-badge&logo=git&logoColor=white&labelColor=0d1117&color=6f42c1" /></a>
-<a href="https://github.com/talha-md/talha-md/commits"><img src="https://img.shields.io/github/last-commit/talha-md/talha-md?style=for-the-badge&logo=github&logoColor=white&labelColor=0d1117&color=00d4aa" /></a>
-<a href="LICENSE"><img src="https://img.shields.io/github/license/talha-md/talha-md?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=0d1117&color=3b82f6" /></a>
+<a href="https://github.com/talhahafiz236/talha-md/stargazers"><img src="https://img.shields.io/github/stars/talhahafiz236/talha-md?style=for-the-badge&logo=github&logoColor=white&labelColor=0d1117&color=FF00A6" /></a>
+<a href="https://github.com/talhahafiz236/talha-md/network/members"><img src="https://img.shields.io/github/forks/talhahafiz236/talha-md?style=for-the-badge&logo=git&logoColor=white&labelColor=0d1117&color=6f42c1" /></a>
+<a href="https://github.com/talhahafiz236/talha-md/commits"><img src="https://img.shields.io/github/last-commit/talhahafiz236/talha-md?style=for-the-badge&logo=github&logoColor=white&labelColor=0d1117&color=00d4aa" /></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/talhahafiz236/talha-md?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=0d1117&color=3b82f6" /></a>
 </p>
 
 <br>
@@ -37,7 +37,7 @@
 |---|---|
 | [🔐 Get Session ID](#step-1-get-session-id) | [✨ Features](#features) |
 | [🚀 Deploy](#step-2-deploy) | [🎨 Themes](#themes) |
-| [⚙️ Environment Variables](#environment-variables) | [🤝 Connect](#connect-with-silva) |
+| [⚙️ Environment Variables](#environment-variables) | [🤝 Connect](#connect-with-talha) |
 
 ---
 
@@ -77,10 +77,9 @@
 
 | Platform | Badge | Notes |
 |:--------:|:-----:|:------|
-| <img src="https://img.shields.io/badge/Silva%20Host-Official-FF00A6?style=flat-square&logo=server&logoColor=white" /> | [![Deploy on Silva Host](https://img.shields.io/badge/Deploy%20Now-Silva%20Host-FF00A6?style=for-the-badge&logo=icloud&logoColor=white)](https://host.silvatech.co.ke/new?template=https://github.com/talha-md/talha-md) | ⭐ Official · Easiest · Optimized |
-| <img src="https://img.shields.io/badge/Heroku-430098?style=flat-square&logo=heroku&logoColor=white" /> | [![Deploy on Heroku](https://img.shields.io/badge/Deploy%20Now-Heroku-430098?style=for-the-badge&logo=heroku&logoColor=white)](https://talha-md-fork-checker.vercel.app/) | 24/7 uptime · Auto-restart |
-| <img src="https://img.shields.io/badge/Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white" /> | [![Deploy on Railway](https://img.shields.io/badge/Deploy%20Now-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)](https://railway.app/new) | $5 free credits/month |
-| <img src="https://img.shields.io/badge/Koyeb-121212?style=flat-square&logo=koyeb&logoColor=white" /> | [![Deploy on Koyeb](https://img.shields.io/badge/Deploy%20Now-Koyeb-121212?style=for-the-badge&logo=koyeb&logoColor=white)](https://app.koyeb.com) | Free tier · No cold-starts |
+| <img src="https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=black" /> | [![Deploy to Render](https://img.shields.io/badge/Deploy%20Now-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://render.com) | Docker + `/health` ready · 24/7 online |
+| <img src="https://img.shields.io/badge/Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white" /> | [![Deploy on Railway](https://img.shields.io/badge/Deploy%20Now-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)](https://railway.app/new) | Docker auto-configured |
+| <img src="https://img.shields.io/badge/Koyeb-121212?style=flat-square&logo=koyeb&logoColor=white" /> | [![Deploy on Koyeb](https://img.shields.io/badge/Deploy%20Now-Koyeb-121212?style=for-the-badge&logo=koyeb&logoColor=white)](https://app.koyeb.com) | Dockerfile ready |
 | <img src="https://img.shields.io/badge/Replit-F26207?style=flat-square&logo=replit&logoColor=white" /> | [![Deploy on Replit](https://img.shields.io/badge/Deploy%20Now-Replit-F26207?style=for-the-badge&logo=replit&logoColor=white)](https://replit.com) | Browser IDE · Edit live |
 
 </div>
@@ -88,61 +87,44 @@
 <br>
 
 <details>
-<summary><img src="https://img.shields.io/badge/⭐%20SILVA%20HOST-Official%20·%20Easiest%20Setup-FF00A6?style=for-the-badge&logo=icloud&logoColor=white" /></summary>
+<summary><img src="https://img.shields.io/badge/🚀%20RENDER-24/7%20Docker%20Deploy-46E3B7?style=for-the-badge&logo=render&logoColor=black" /></summary>
 
 <br>
 
-> 💡 Silva Host is purpose-built for this bot. Fastest setup with zero configuration headaches.
-
 | Step | Action |
 |:----:|--------|
-| **1** | Click **Deploy Now** → [host.silvatech.co.ke](https://host.silvatech.co.ke/new?template=https://github.com/talha-md/talha-md) |
-| **2** | Log in or create a Silva Host account |
-| **3** | Fill in `SESSION_ID`, `OWNER_NUMBER`, `BOT_NAME` |
-| **4** | Click **Deploy** — bot goes live in seconds ✅ |
+| **1** | Connect GitHub repo `talhahafiz236/talha-md` on [render.com](https://render.com) |
+| **2** | Runtime: **Docker** (`render.yaml` & `Dockerfile` ready, health check `/health`) |
+| **3** | Set `SESSION_ID`, `OWNER_NUMBER` (`923426767199`), `BOT_NAME` (`TALHA MD`) |
+| **4** | Deploy — bot goes live 24/7 ✅ |
 
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/🟣%20HEROKU-24/7%20Uptime%20·%20Auto--Restart-430098?style=for-the-badge&logo=heroku&logoColor=white" /></summary>
+<summary><img src="https://img.shields.io/badge/🚂%20RAILWAY-Docker%20Deploy-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" /></summary>
 
 <br>
 
 | Step | Action |
 |:----:|--------|
-| **1** | [Fork the repo](https://github.com/talha-md/talha-md/fork) to your GitHub |
-| **2** | Open [talha-md-fork-checker.vercel.app](https://talha-md-fork-checker.vercel.app/) → click **Deploy to Heroku** |
-| **3** | Fill in `SESSION_ID`, `OWNER_NUMBER`, `BOT_NAME` |
-| **4** | Click **Deploy App** — wait ~2 minutes |
-| **5** | Go to **More → View Logs** → confirm `✅ Connected to WhatsApp` |
-
-</details>
-
-<details>
-<summary><img src="https://img.shields.io/badge/🚂%20RAILWAY-$5%20Free%20Credits/Month-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" /></summary>
-
-<br>
-
-| Step | Action |
-|:----:|--------|
-| **1** | [Fork the repo](https://github.com/talha-md/talha-md/fork) to your GitHub |
+| **1** | [Fork the repo](https://github.com/talhahafiz236/talha-md/fork) to your GitHub |
 | **2** | Go to [railway.app](https://railway.app) → **New Project → Deploy from GitHub** |
-| **3** | Select your forked repo |
+| **3** | Select `talhahafiz236/talha-md` |
 | **4** | Open **Variables** tab → add `SESSION_ID`, `OWNER_NUMBER`, `BOT_NAME` |
 | **5** | Check logs for `✅ Connected to WhatsApp` |
 
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/🟡%20KOYEB-Free%20Tier%20·%20No%20Cold--Starts-121212?style=for-the-badge&logo=koyeb&logoColor=white" /></summary>
+<summary><img src="https://img.shields.io/badge/🟡%20KOYEB-Dockerfile%20Deploy-121212?style=for-the-badge&logo=koyeb&logoColor=white" /></summary>
 
 <br>
 
 | Step | Action |
 |:----:|--------|
-| **1** | [Fork the repo](https://github.com/talha-md/talha-md/fork) to your GitHub |
+| **1** | [Fork the repo](https://github.com/talhahafiz236/talha-md/fork) to your GitHub |
 | **2** | Go to [app.koyeb.com](https://app.koyeb.com) → **Create App → GitHub** |
-| **3** | Select your fork · Set **Run command** to `node silva.js` |
+| **3** | Select your repo · Builder: **Dockerfile** (or Run command `node talha.js`) |
 | **4** | Add `SESSION_ID`, `OWNER_NUMBER`, `BOT_NAME` under **Environment Variables** |
 | **5** | Click **Deploy** → check logs for `✅ Connected to WhatsApp` |
 
@@ -163,20 +145,6 @@
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/🔵%20TALKDROVE-No%20Coding%20Needed%20·%20One--Click-0078D4?style=for-the-badge&logo=azuredevops&logoColor=white" /></summary>
-
-<br>
-
-| Step | Action |
-|:----:|--------|
-| **1** | Open [host.talkdrove.com/share-bot/49](https://host.talkdrove.com/share-bot/49) |
-| **2** | Click **Host This Bot** |
-| **3** | Enter your `SESSION_ID` and `OWNER_NUMBER` |
-| **4** | Click **Deploy** — bot goes live instantly ✅ |
-
-</details>
-
-<details>
 <summary><img src="https://img.shields.io/badge/💻%20LOCAL%20/%20VPS-Full%20Control%20·%20Developer%20Mode-2ea44f?style=for-the-badge&logo=gnubash&logoColor=white" /></summary>
 
 <br>
@@ -185,7 +153,7 @@
 
 ```bash
 # Clone & Install
-git clone https://github.com/talha-md/talha-md.git
+git clone https://github.com/talhahafiz236/talha-md.git
 cd talha-md
 npm install
 
@@ -194,13 +162,13 @@ cp config.env.example config.env
 # → Fill in SESSION_ID, OWNER_NUMBER, etc.
 
 # Start
-node silva.js
+node talha.js
 ```
 
 **Keep running 24/7 with PM2:**
 ```bash
 npm install -g pm2
-pm2 start silva.js --name talha-md
+pm2 start talha.js --name talha-md
 pm2 save && pm2 startup
 ```
 
@@ -222,7 +190,7 @@ pm2 save && pm2 startup
 | `BOT_NAME` | `TALHA MD` | Bot display name |
 | `PREFIX` | `.` | Command prefix (`.` `,` `!` `/` or comma-separated) |
 | `MODE` | `public` | `public` · `private` · `group` · `inbox` |
-| `THEME` | `silva` | Bot personality — see [Themes](#-themes) |
+| `THEME` | `talha` | Bot personality — see [Themes](#-themes) |
 
 ### 🧠 Agent v2
 
@@ -262,7 +230,7 @@ Use `null`, `none`, `off`, or `no prefix` to enable prefix-free commands. Use a 
 
 ### 🗄️ Encrypted Postgres storage
 
-When `DATABASE_URL` is configured, Silva creates encrypted tables for users, selected Agent v2 conversations, and developer contacts. Agent chat content is encrypted with AES-256-GCM before it is stored, using the bot's existing session secret as the encryption source. The three built-in developer contacts are `254700143167`, `254755257907`, and `254743706010`, and they are available through `.developers`.
+When `DATABASE_URL` is configured, TALHA MD creates encrypted tables for users, selected Agent v2 conversations, and developer contacts. Agent chat content is encrypted with AES-256-GCM before it is stored, using the bot's existing session secret as the encryption source.
 
 Never commit the real Neon connection string. Add the single `DATABASE_URL` value to your hosting provider's private secret/environment-variable panel. The database is optional, and the bot continues running if Postgres is unavailable. Owner feature toggles set with commands such as `.setautobio on`, `.setautoreact on`, `.setautoread on`, and `.setsetting KEY value` are also written to the encrypted `talha_user_settings` table when Postgres is available.
 
@@ -471,17 +439,14 @@ Any command can show its usage with either `.help <command>` or `<prefix><comman
 
 ---
 
-<a id="connect-with-silva"></a>
-## 🤝 Connect With Silva
+<a id="connect-with-talha"></a>
+## 🤝 Connect With TALHA MD
 
 <div align="center">
 
 <br>
 
-[![WhatsApp Channel](https://img.shields.io/badge/WhatsApp%20Channel-Follow%20Us-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://whatsapp.com/channel/0029VaAkETLLY6d8qhLmZt2v)
-[![Support Group](https://img.shields.io/badge/Support%20Group-Join%20Now-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://chat.whatsapp.com/Ik0YpP0dM8jHVjScf1Ay5S)
-[![Instagram](https://img.shields.io/badge/Instagram-Follow-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://instagram.com/_its.silva)
-[![Twitter/X](https://img.shields.io/badge/X%20(Twitter)-Follow-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/talha_sheikh)
+[![WhatsApp Channel](https://img.shields.io/badge/WhatsApp%20Channel-Follow%20Us-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://whatsapp.com/channel/0029Vb8l5Yd2f3EBHMz87B2S)
 
 <br>
 
@@ -489,24 +454,17 @@ Any command can show its usage with either `.help <command>` or `<prefix><comman
 
 ---
 
-## 👨‍💻 Built By
+## 👨‍💻 Built For
 
 <div align="center">
 
 <table>
   <tr>
     <td align="center">
-      <a href="https://github.com/talha-md">
-        <img src="https://github.com/talha-md.png?size=100" width="90" style="border-radius:50%"/><br>
-        <b>Silva</b><br>
-        <sub>Creator & Lead Dev</sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/Sylivanu">
-        <img src="https://github.com/Sylivanu.png?size=100" width="90" style="border-radius:50%"/><br>
-        <b>CEO</b><br>
-        <sub>Contributor</sub>
+      <a href="https://github.com/talhahafiz236">
+        <img src="https://github.com/talhahafiz236.png?size=100" width="90" style="border-radius:50%"/><br>
+        <b>Talha Sheikh</b><br>
+        <sub>Owner & Maintainer</sub>
       </a>
     </td>
   </tr>
@@ -520,9 +478,9 @@ Any command can show its usage with either `.help <command>` or `<prefix><comman
 
 <div align="center">
 
-[![Forkers](https://reporoster.com/forks/talha-md/talha-md)](https://github.com/talha-md/talha-md/network/members)
+[![Forkers](https://reporoster.com/forks/talhahafiz236/talha-md)](https://github.com/talhahafiz236/talha-md/network/members)
 
-[![Stargazers](https://reporoster.com/stars/talha-md/talha-md)](https://github.com/talha-md/talha-md/stargazers)
+[![Stargazers](https://reporoster.com/stars/talhahafiz236/talha-md)](https://github.com/talhahafiz236/talha-md/stargazers)
 
 </div>
 
@@ -530,10 +488,10 @@ Any command can show its usage with either `.help <command>` or `<prefix><comman
 
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer&text=Silva%20Tech%20Inc&fontSize=28&fontColor=fff&animation=twinkling" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer&text=TALHA%20MD%20BOT&fontSize=28&fontColor=fff&animation=twinkling" width="100%"/>
 
-**Built with purpose by [TALHA MD Inc](https://github.com/talha-md)**
+**TALHA MD — Maintained for [Talha Sheikh](https://github.com/talhahafiz236)**
 
-`TALHA MD Bot — 1,400+ commands. One scan. Unlimited possibilities.`
+`TALHA MD Bot — Smart, Fast & Always Online.`
 
 </div>

@@ -22,7 +22,7 @@ module.exports = {
         try {
             const response = await axios.get(`https://v3.sg.media-imdb.com/suggestion/x/${encodeURIComponent(query)}.json`, {
                 timeout: 10000,
-                headers: { Accept: 'application/json', 'User-Agent': 'Silva-MD-Bot/1.0' }
+                headers: { Accept: 'application/json', 'User-Agent': 'TALHA-MD-Bot/2.0' }
             });
             const results = Array.isArray(response.data?.d) ? response.data.d
                 .filter(item => item?.id && item?.l)

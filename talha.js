@@ -1,4 +1,4 @@
-// silva.js — Updated with fixes for group functionality and error handling
+// talha.js — TALHA MD Main Entry & WhatsApp Multi-Device Engine
 const { File: BufferFile } = require('node:buffer');
 global.File = BufferFile;
 
@@ -139,7 +139,7 @@ function _resetReconnect() {
 
 const prefix = config.PREFIX || '.';
 const tempDir = path.join(os.tmpdir(), 'talha-cache');
-const port = process.env.PORT || 25680;
+const port = Number(process.env.PORT) || 25680;
 const pluginsDir = path.join(__dirname, 'plugins');
 
 // ✅ Session paths
@@ -169,16 +169,17 @@ async function loadSession() {
                     const parts = sid.split('~');
                     b64data = parts.slice(1).join('~');
                 }
-                const cleanB64 = b64data.replace('...', '').trim();
+                const cleanB64 = b64data.replace('...', '').replace(/\s+/g, '').trim();
                 let decompressedData = null;
                 try {
                     const compressedData = Buffer.from(cleanB64, 'base64');
-                    decompressedData = zlib.gunzipSync(compressedData);
+                    decompressedData = zlib.gunzipSync(compressedData).toString('utf8');
                 } catch {
                     // Try direct base64 decode if not gzipped
                     decompressedData = Buffer.from(cleanB64, 'base64').toString('utf8');
                 }
                 if (decompressedData) {
+                    JSON.parse(decompressedData); // validate JSON before writing
                     fs.writeFileSync(credsPath, decompressedData, "utf8");
                     logMessage('SUCCESS', "✅ NEW TALHA-MD SESSION LOADED SUCCESSFULLY");
                 }
@@ -385,8 +386,8 @@ async function sendWelcomeMessage(sock) {
         `📢 *Channel:* https://whatsapp.com/channel/0029Vb8l5Yd2f3EBHMz87B2S`
     ].join('\n');
 
-    // Load bot icon (local Spiderman avatar preferred, URL fallback)
-    const iconPath = path.join(__dirname, 'assets', 'talha_md_whatsapp_dp.jpg');
+    // Load bot welcome image ("Hello! I'm Talha MD")
+    const iconPath = path.join(__dirname, 'assets', 'talha_md_welcome.jpg');
     const iconBuffer = fs.existsSync(iconPath) ? fs.readFileSync(iconPath) : null;
 
     try {
@@ -397,13 +398,13 @@ async function sendWelcomeMessage(sock) {
                 await sock.sendMessage(ownerJid, {
                     image:       iconBuffer,
                     caption,
-                    mimetype:    'image/png'
+                    mimetype:    'image/jpeg'
                 });
             } catch {
-                await sock.sendMessage(ownerJid, { text: caption });
+                await sock.sendMessage(ownerJid, { image: { url: 'https://files.catbox.moe/ncgbn5.jpg' }, caption });
             }
         } else {
-            await sock.sendMessage(ownerJid, { text: caption });
+            await sock.sendMessage(ownerJid, { image: { url: 'https://files.catbox.moe/ncgbn5.jpg' }, caption });
         }
         logMessage('SUCCESS', 'Welcome message sent to owner.');
 
@@ -467,7 +468,8 @@ async function connectToWhatsApp() {
     const seenStatusIds = new Set();
     const seenCmdIds = new Set();
 
-    setInterval(() => {
+    if (global._dedupSweepTimer) clearInterval(global._dedupSweepTimer);
+    global._dedupSweepTimer = setInterval(() => {
         if (seenCmdIds.size > 5000) seenCmdIds.clear();
         if (seenStatusIds.size > 5000) seenStatusIds.clear();
     }, 10 * 60 * 1000);
@@ -478,17 +480,9 @@ async function connectToWhatsApp() {
     // Use the session directory for multi-file auth state
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
-    // gifted-baileys' version fetch URL is broken (404). Fetch from the upstream
-    // WhiskeySockets/Baileys repo directly; fall back to a pinned known-good version.
+    // gifted-baileys' version fetch URL is broken (404) and adds ~12s delay on startup.
+    // Fetch directly from the upstream WhiskeySockets/Baileys repo with a fast timeout; fall back to pinned version.
     let version = [2, 3000, 1035194821];
-    try {
-        const { version: fetched, isLatest } = await fetchLatestBaileysVersion();
-        if (fetched && fetched.length === 3) {
-            version = fetched;
-            logMessage('INFO', `WA version: ${version.join('.')} (latest: ${isLatest})`);
-        }
-    } catch (e) { /* ignore — use pinned version */ }
-    // Always try the upstream source as the authoritative version
     try {
         const _https = require('https');
         await new Promise((resolve) => {
@@ -498,7 +492,7 @@ async function connectToWhatsApp() {
                     try { const parsed = JSON.parse(d); if (Array.isArray(parsed.version)) { version = parsed.version; logMessage('INFO', `WA version (upstream): ${version.join('.')}`); } } catch {}
                     resolve();
                 });
-            }).on('error', () => resolve()).setTimeout(8000, function() { this.destroy(); resolve(); });
+            }).on('error', () => resolve()).setTimeout(4000, function() { this.destroy(); resolve(); });
         });
     } catch { /* keep pinned version */ }
 
@@ -894,8 +888,9 @@ async function connectToWhatsApp() {
                     logMessage('WARN', `[LendExpiry] Check failed: ${e.message}`);
                 }
             };
+            if (global._lendExpiryTimer) clearInterval(global._lendExpiryTimer);
             setTimeout(_runLendExpiry, 15000);                   // first run 15s after connect
-            setInterval(_runLendExpiry, 60 * 60 * 1000);         // then every hour
+            global._lendExpiryTimer = setInterval(_runLendExpiry, 60 * 60 * 1000);         // then every hour
 
         }
     });
@@ -960,6 +955,11 @@ async function connectToWhatsApp() {
             if (now - value.timestamp > 3 * 60 * 60 * 1000) {
                 messageCache.delete(key);
             }
+        }
+        while (messageCache.size > 5000) {
+            const oldestKey = messageCache.keys().next().value;
+            if (!oldestKey) break;
+            messageCache.delete(oldestKey);
         }
     });
 
@@ -1509,7 +1509,7 @@ async function connectToWhatsApp() {
 
                         // React using the correct newsletter API (not sendMessage)
                         if (serverId) {
-                            const isOwnNewsletter = nlJid === '120363385750849202@newsletter';
+                            const isOwnNewsletter = nlJid === (config.NEWSLETTER_JID || '120363431246808172@newsletter');
                             const reactEmoji = isOwnNewsletter
                                 ? '❤️'
                                 : config.AUTO_REACT_NEWSLETTER
@@ -1533,9 +1533,11 @@ async function connectToWhatsApp() {
                 // Delegate all command dispatch to handler.js
                 // (handles prefix check, permissions, group admin, run() API)
                 if (config.READ_MESSAGE) {
-                    try { await sock.readMessages([m.key]); } catch (e) { /* ignore */ }
+                    sock.readMessages([m.key]).catch(() => {});
                 }
-                await handleMessages(sock, m);
+                handleMessages(sock, m).catch(err => {
+                    logMessage('ERROR', `handleMessages error: ${err.message}`);
+                });
             }
         } catch (err) {
             logMessage('ERROR', `messages.upsert consolidated handler error: ${err.stack || err.message}`);
@@ -1574,6 +1576,7 @@ app.get('/qr', (req, res) => {
 </head>
 <body>
   <div class="card">
+    <img src="/talha_md_welcome.jpg" alt="TALHA-MD" style="width:140px;height:140px;border-radius:50%;object-fit:cover;margin-bottom:16px;border:3px solid #10b981;box-shadow:0 0 20px rgba(16,185,129,0.35);">
     <h1>⚡ TALHA-MD IS CONNECTED! ⚡</h1>
     <p>Aap ka WhatsApp successfully connect ho chuka hai. Bot active hai aur ready hai!</p>
   </div>
@@ -1594,14 +1597,15 @@ app.get('/qr', (req, res) => {
   <meta http-equiv="refresh" content="5">
   <style>
     body { background: #090b10; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-    .card { background: rgba(18, 24, 38, 0.88); border: 1px solid rgba(0, 229, 255, 0.25); border-radius: 20px; padding: 32px 24px; max-width: 460px; width: 100%; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.1); text-align: center; }
-    .badge { display: inline-block; background: linear-gradient(135deg, #00e5ff, #0284c7); color: #000; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 999px; letter-spacing: 1px; margin-bottom: 14px; }
+    .card { background: rgba(18, 24, 38, 0.88); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; padding: 24px; max-width: 460px; width: 100%; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(16, 185, 129, 0.15); text-align: center; }
+    .hero-img { width: 100%; border-radius: 14px; margin-bottom: 16px; border: 1px solid rgba(16, 185, 129, 0.35); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+    .badge { display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 999px; letter-spacing: 1px; margin-bottom: 14px; }
     h1 { margin: 0 0 8px; font-size: 24px; color: #fff; font-weight: 800; letter-spacing: -0.5px; }
     p.subtitle { color: #94a3b8; font-size: 14px; margin: 0 0 24px; line-height: 1.5; }
     .qr-container { background: #ffffff; padding: 14px; border-radius: 16px; display: inline-block; margin: 0 auto 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
     .qr-container img { display: block; width: 230px; height: 230px; border-radius: 8px; }
     .code-title { color: #94a3b8; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .code-box { background: rgba(0, 0, 0, 0.6); border: 1.5px dashed #00e5ff; border-radius: 12px; padding: 14px 20px; font-family: monospace; font-size: 26px; font-weight: 800; color: #38bdf8; letter-spacing: 4px; display: inline-block; user-select: all; cursor: pointer; margin-bottom: 20px; }
+    .code-box { background: rgba(0, 0, 0, 0.6); border: 1.5px dashed #10b981; border-radius: 12px; padding: 14px 20px; font-family: monospace; font-size: 26px; font-weight: 800; color: #34d399; letter-spacing: 4px; display: inline-block; user-select: all; cursor: pointer; margin-bottom: 20px; }
     .instructions { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px; text-align: left; font-size: 13px; color: #cbd5e1; line-height: 1.6; }
     .instructions ol { margin: 0; padding-left: 20px; }
     .instructions li { margin-bottom: 4px; }
@@ -1610,7 +1614,8 @@ app.get('/qr', (req, res) => {
 </head>
 <body>
   <div class="card">
-    <div class="badge" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff;">👑 OWNER EXCLUSIVE PORTAL</div>
+    <img class="hero-img" src="/talha_md_hero.jpg" alt="TALHA-MD Banner" />
+    <div class="badge">👑 OWNER EXCLUSIVE PORTAL</div>
     <h1>⚡ TALHA-MD OWNER CONNECT ⚡</h1>
     <p class="subtitle">Yeh portal sirf Bot Owner (+923426767199) ke liye hai.<br><span style="color: #38bdf8; font-size: 13px;">Baqi users DM me <b>.pair &lt;number&gt;</b> bhej kar connect karein!</span></p>
     
@@ -1708,7 +1713,7 @@ app.post('/api/pair', async (req, res) => {
 // Cache responses for 5 minutes to stay well within GitHub's rate limits
 const _ghCache = new Map();
 const GH_CACHE_TTL = 5 * 60 * 1000;
-const GH_OWNER = 'talha-md';
+const GH_OWNER = 'talhahafiz236';
 const GH_REPO  = 'talha-md';
 
 async function ghFetch(endpoint) {
@@ -1769,19 +1774,19 @@ app.get('/api/plugins', (req, res) => {
 });
 
 function startHttpServer(retryCount = 0) {
-    const httpServer = app.listen(port, () => {
+    const httpServer = app.listen(port, '0.0.0.0', () => {
         logMessage('INFO', `🌐 Server running on port ${port}`);
         logMessage('INFO', `📊 Dashboard available at http://localhost:${port}`);
 
-        // ── Heroku keep-alive self-ping ───────────────────────────────────────
-        const keepAliveUrl = process.env.APP_URL || process.env.HEROKU_APP_DEFAULT_DOMAIN_NAME
-            ? `https://${process.env.HEROKU_APP_DEFAULT_DOMAIN_NAME}/ping`
-            : null;
+        // ── Cloud keep-alive self-ping (Render / Heroku / Railway / Koyeb) ──
+        const extBase = process.env.APP_URL
+            || process.env.RENDER_EXTERNAL_URL
+            || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null)
+            || (process.env.KOYEB_PUBLIC_DOMAIN ? `https://${process.env.KOYEB_PUBLIC_DOMAIN}` : null)
+            || (process.env.HEROKU_APP_DEFAULT_DOMAIN_NAME ? `https://${process.env.HEROKU_APP_DEFAULT_DOMAIN_NAME}` : null);
 
-        if (keepAliveUrl || process.env.APP_URL) {
-            const pingUrl = process.env.APP_URL
-                ? `${process.env.APP_URL.replace(/\/$/, '')}/ping`
-                : keepAliveUrl;
+        if (extBase) {
+            const pingUrl = `${extBase.replace(/\/$/, '')}/ping`;
             const https = require('https');
             const http  = require('http');
             const pinger = pingUrl.startsWith('https') ? https : http;
@@ -1794,9 +1799,9 @@ function startHttpServer(retryCount = 0) {
                         logMessage('WARN', `[KeepAlive] ping failed: ${e.message}`);
                     });
                 } catch (e) { /* ignore */ }
-            }, 25 * 60 * 1000);
+            }, 10 * 60 * 1000);
 
-            logMessage('INFO', `🔄 Heroku keep-alive enabled → ${pingUrl}`);
+            logMessage('INFO', `🔄 Cloud keep-alive enabled → ${pingUrl}`);
         }
     });
 
@@ -1853,10 +1858,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // ✅ Boot Bot
 (async () => {
     try {
-        console.log('\x1b[36m');
-        console.log('╔══════════════════════════════════════════╗');
-        console.log('║  ____  _ _                 __  __ ____   ║');
-        console.log('║ / ___|| (_)_   ____ _     |  \\/  |  _ \\  ║');
+        console.log('\x1b[32m');
         console.log('╔══════════════════════════════════════════╗');
         console.log('║       ⚡ TALHA-MD NEURAL AGENT ⚡        ║');
         console.log('║      Owner: Talha Sheikh • Pakistan      ║');

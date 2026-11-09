@@ -34,7 +34,7 @@ module.exports = {
                 externalAdReply: {
                     title: '⚡ TALHA-MD OFFICIAL CHANNEL',
                     body: 'Tap to join Talha Sheikh\'s WhatsApp Channel',
-                    thumbnailUrl: config.ALIVE_IMG || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80',
+                    thumbnailUrl: config.ALIVE_IMG || 'https://files.catbox.moe/cpm6od.jpg',
                     sourceUrl: config.CHANNEL_URL || 'https://whatsapp.com/channel/0029Vb8l5Yd2f3EBHMz87B2S',
                     mediaType: 1,
                     renderLargerThumbnail: true

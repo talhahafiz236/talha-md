@@ -19,7 +19,7 @@ TALHA-MD~eyJub2lzZUtleSI...
 1. **GitHub Par Code Upload Karein:**
    * [GitHub.com](https://github.com) par jayein aur ek New Repository banayein (e.g. `talha-md`).
    * Is project ke tamaam files ko GitHub par push / upload karein.
-   *(Note: `session/` folder aur `.env` automatically `.gitignore` hain, is liye aapka personal data safe rahega).*
+   *(Note: `session/` folder, `.env`, aur `config.env` automatically `.gitignore` hain, is liye aapka personal data safe rahega).*
 
 2. **Render Account Banayein:**
    * [Render.com](https://render.com) par jayein aur free sign-up karein.

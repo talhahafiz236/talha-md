@@ -109,7 +109,7 @@ async function safeSend(sock, jid, content, opts = {}) {
     // the bot has no registered send-session for that LID account.
     // Use m.key.remoteJid directly — never reconstruct or remap to @s.whatsapp.net here.
     if (isLidDm && typeof sock.assertSessions === 'function') {
-        try { await sock.assertSessions([jid], false); } catch { /* non-fatal */ }
+        sock.assertSessions([jid], false).catch(() => {});
     }
 
     // Attempt 1 — primary: m.key.remoteJid as-is, full opts (quoted + contextInfo)
@@ -371,7 +371,7 @@ async function handleMessages(sock, message) {
         // ── Auto-presence: fire instantly on every incoming message ──────────
         if (!message.key.fromMe && (config.AUTO_TYPING || config.AUTO_RECORDING)) {
             const presenceType = config.AUTO_RECORDING ? 'recording' : 'composing';
-            try { await sock.sendPresenceUpdate(presenceType, jid); } catch { /* non-fatal */ }
+            sock.sendPresenceUpdate(presenceType, jid).catch(() => {});
         }
 
         // isGroup: @g.us = group, @s.whatsapp.net / @lid / @c.us = DM
@@ -483,17 +483,15 @@ async function handleMessages(sock, message) {
                 } catch {}
             }
         }
-        // Plugin onMessage hooks fire for everyone — including the connected
-        // contact (fromMe=true) — so conversation-aware plugins respond to
-        // the owner's own messages in both private and group chats.
-        for (const p of plugins) {
-            if (typeof p.onMessage !== 'function') continue;
-            try {
-                await p.onMessage(sock, message, text, {
+        // Plugin onMessage hooks fire concurrently in background without delaying command execution
+        const onMsgPlugins = plugins.filter(p => typeof p.onMessage === 'function');
+        if (onMsgPlugins.length > 0) {
+            Promise.allSettled(onMsgPlugins.map(p =>
+                p.onMessage(sock, message, text, {
                     jid, sender, from, isGroup,
                     contextInfo: isGroup ? {} : GLOBAL_CONTEXT_INFO
-                });
-            } catch { /* ignore plugin onMessage errors */ }
+                })
+            )).catch(() => {});
         }
 
 
@@ -839,7 +837,7 @@ async function handleMessages(sock, message) {
 
             // ── Override presence to recording for media commands ───────────
             if (config.AUTO_RECORDING && RECORDING_CMDS.has(resolvedCommand)) {
-                try { await sock.sendPresenceUpdate('recording', jid); } catch { /* non-fatal */ }
+                sock.sendPresenceUpdate('recording', jid).catch(() => {});
             }
 
             try {
@@ -868,7 +866,7 @@ async function handleMessages(sock, message) {
 
             // ── Auto-presence: back to paused after responding ───────────────
             if (config.AUTO_TYPING || config.AUTO_RECORDING) {
-                try { await sock.sendPresenceUpdate('paused', jid); } catch { /* non-fatal */ }
+                sock.sendPresenceUpdate('paused', jid).catch(() => {});
             }
 
             // ── Only run the first matching plugin — stop after one dispatch ─

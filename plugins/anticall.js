@@ -45,7 +45,7 @@ function initCallHandler(sock, ownerJid) {
                             externalAdReply: {
                                 title:        'Call Rejected',
                                 body:         (getStr('botName') || 'TALHA MD') + ' Anti-Call',
-                                thumbnailUrl: getStr('pic1') || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
+                                thumbnailUrl: getStr('pic2') || 'https://files.catbox.moe/ie7zbn.jpg',
                                 mediaType:    1
                             }
                         }

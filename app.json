@@ -1,21 +1,21 @@
 {
   "name": "talha-md",
-  "description": "TALHA MD — Feature-rich multi-device WhatsApp bot with 150+ commands, autonomous AI agent, anti-delete, media downloaders, and anti-ban protection.",
+  "description": "TALHA MD — Feature-rich multi-device WhatsApp bot with 500+ commands, autonomous AI agent, anti-delete, media downloaders, and sub-bot pairing.",
   "keywords": ["talha-md", "whatsapp", "baileys", "bot", "multi-device", "ai", "chatbot", "whatsapp-bot", "nodejs"],
-  "logo": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
-  "website": "https://github.com/talha-md",
+  "logo": "https://files.catbox.moe/ie7zbn.jpg",
+  "website": "https://github.com/talhahafiz236/talha-md",
   "success_url": "/",
-  "stack": "heroku-26",
+  "stack": "heroku-24",
   "env": {
     "SESSION_ID": {
-      "description": "Your WhatsApp session ID. Get it from the pairing page.",
+      "description": "Your WhatsApp permanent SESSION_ID (TALHA-MD~...).",
       "required": true,
       "value": ""
     },
     "OWNER_NUMBER": {
-      "description": "Owner WhatsApp number with country code (e.g. 254712345678).",
+      "description": "Owner WhatsApp number with country code (e.g. 923426767199).",
       "required": true,
-      "value": ""
+      "value": "923426767199"
     },
     "PREFIX": {
       "description": "Command prefix. Single: '.' | Multiple: '.,!,/,?' | Any symbol: 'any' | No prefix: 'none'.",
@@ -23,39 +23,39 @@
       "value": "."
     },
     "MODE": {
-      "description": "Bot mode: public (everyone), private (owner only), group (groups only), inbox (DM only), both (public).",
+      "description": "Bot mode: public, private, group, inbox, both.",
       "required": false,
-      "value": "public"
+      "value": "both"
     },
     "BOT_NAME": {
       "description": "Bot display name shown in menus and greetings.",
       "required": false,
-      "value": "✦ Silva ✦ MD ✦"
+      "value": "TALHA MD"
     },
     "OWNER_NAME": {
       "description": "Bot owner's display name.",
       "required": false,
-      "value": "TALHA MD"
+      "value": "Talha Sheikh"
     },
     "THEME": {
-      "description": "Bot theme/voice. Options: silva, adam, ayanokoji, edith, friday, genos, gideon, gojo, goku, luffy, naruto, nezuko, parker, secktor, suhail, zerotwo, itachi, batman, thanos.",
+      "description": "Bot theme (default: talha).",
       "required": false,
-      "value": "silva"
+      "value": "talha"
     },
     "ALIVE_IMG": {
-      "description": "Image URL shown with the alive/menu command.",
+      "description": "Image URL shown with the menu command.",
       "required": false,
-      "value": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80"
+      "value": "https://files.catbox.moe/cpm6od.jpg"
     },
     "GEMINI_API_KEY": {
-      "description": "Google Gemini API key for advanced AI responses. Get it from ai.google.dev.",
+      "description": "Optional Google Gemini API key for AI responses.",
       "required": false,
       "value": ""
     },
     "DATABASE_URL": {
-      "description": "Optional private Postgres connection URL. Add it in the deployment secret panel, not in this public file.",
+      "description": "Optional Postgres connection URL (set securely in host secrets).",
       "required": false,
-      "value": "postgresql://neondb_owner:npg_kNcL1MgIQDE8@ep-mute-pine-b7fme7ik-pooler.c-13.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+      "value": ""
     },
     "ANTIDELETE_GROUP": {
       "description": "Recover deleted messages in groups (true/false).",
@@ -70,12 +70,12 @@
     "AUTO_STATUS_SEEN": {
       "description": "Auto-view all WhatsApp status updates (true/false).",
       "required": false,
-      "value": "true"
+      "value": "false"
     },
     "AUTO_STATUS_REACT": {
       "description": "Auto-react to status updates with emoji (true/false).",
       "required": false,
-      "value": "true"
+      "value": "false"
     },
     "ALWAYS_ONLINE": {
       "description": "Keep bot always shown as online (true/false).",
@@ -93,24 +93,14 @@
       "value": "false"
     },
     "ANTICALL": {
-      "description": "Auto-reject all incoming WhatsApp calls and notify owner (true/false).",
+      "description": "Auto-reject incoming calls (true/false).",
       "required": false,
-      "value": "true"
+      "value": "false"
     },
     "TIMEZONE": {
-      "description": "Timezone for date/time features (e.g. Africa/Nairobi, America/New_York).",
+      "description": "Timezone for date/time features (default: Asia/Karachi).",
       "required": false,
-      "value": "Africa/Nairobi"
-    },
-    "AUTO_JOIN_GROUPS": {
-      "description": "Comma-separated group invite codes to auto-join on startup. Leave blank to disable.",
-      "required": false,
-      "value": ""
-    },
-    "PORT": {
-      "description": "HTTP server port for the web dashboard.",
-      "required": false,
-      "value": "25680"
+      "value": "Asia/Karachi"
     }
   },
   "formation": {

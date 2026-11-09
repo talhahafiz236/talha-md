@@ -12,7 +12,7 @@ module.exports = {
     run: async (sock, message, args, { sender, contextInfo }) => {
         if (!args[0]) {
             return sock.sendMessage(sender, {
-                text: `❌ Please provide a GitHub URL.\nExample: .gitclone https://github.com/talha-md/talha-md`,
+                text: `❌ Please provide a GitHub URL.\nExample: .gitclone https://github.com/talhahafiz236/talha-md`,
                 contextInfo
             }, { quoted: message });
         }

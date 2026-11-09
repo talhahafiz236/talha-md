@@ -1,7 +1,6 @@
 # syntax = docker/dockerfile:1
 
-# Adjust NODE_VERSION as desired
-ARG NODE_VERSION=22.21.1
+ARG NODE_VERSION=22
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="Node.js"
@@ -11,39 +10,32 @@ WORKDIR /app
 
 # Set production environment
 ENV NODE_ENV="production"
+ENV PORT="3000"
 
-
-# Throw-away build stage to reduce size of final image
+# Build stage to compile native/git dependencies cleanly
 FROM base AS build
 
-# Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git node-gyp pkg-config python-is-python3 && \
+    apt-get install --no-install-recommends -y build-essential git node-gyp pkg-config python-is-python3 ca-certificates && \
     git config --global url."https://github.com/".insteadOf "git@github.com:" && \
     git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
     git config --global url."https://github.com/".insteadOf "git://github.com/"
 
-# Install node modules
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev --no-audit --no-fund
 
-# Copy application code
 COPY . .
 
-
-# Final stage for app image
+# Final runtime image
 FROM base
 
-# Install packages needed for deployment including ffmpeg, python3, and yt-dlp
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y ffmpeg python3 curl && \
-    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    apt-get install --no-install-recommends -y ffmpeg python3 curl ca-certificates && \
+    curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-# Copy built application
 COPY --from=build /app /app
 
-# Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
 CMD [ "npm", "run", "start" ]
