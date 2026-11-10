@@ -170,22 +170,41 @@ module.exports = {
         }
 
         lines.push(`• *Profile:* https://www.tiktok.com/@${u.uniqueId || username}`);
-        lines.push(`_Powered by ${getStr('botName') || 'TALHA MD'} · TikWM API_`);
+        lines.push(`_Powered by ${getStr('botName') || 'TALHA MD'} · TikTok_`);
 
         const avatarUrl = u.avatarLarger || u.avatarThumb || u.avatar || null;
+        const caption = fmt(lines.join('\n'));
 
         try {
             if (avatarUrl) {
-                await sock.sendMessage(jid, {
-                    image:      { url: avatarUrl },
-                    caption:    fmt(lines.join('\n')),
-                    contextInfo,
-                }, { quoted: message });
+                let avatarPayload = null;
+                try {
+                    const imgRes = await axios.get(avatarUrl, {
+                        responseType: 'arraybuffer',
+                        timeout: 10000,
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            'Referer': 'https://www.tiktok.com/',
+                        },
+                    });
+                    const buf = Buffer.from(imgRes.data);
+                    if (buf.length > 512) avatarPayload = buf;
+                } catch {}
+
+                if (avatarPayload) {
+                    await sock.sendMessage(jid, {
+                        image: avatarPayload,
+                        caption,
+                        contextInfo,
+                    }, { quoted: message });
+                } else {
+                    await reply(caption);
+                }
             } else {
-                await reply(fmt(lines.join('\n')));
+                await reply(caption);
             }
         } catch {
-            await reply(fmt(lines.join('\n')));
+            await reply(caption);
         }
 
         await sock.sendPresenceUpdate('paused', jid);

@@ -418,9 +418,9 @@ async function sendWelcomeMessage(sock) {
     const iconPath = path.join(__dirname, 'assets', 'talha_md_welcome.jpg');
     const iconBuffer = fs.existsSync(iconPath) ? fs.readFileSync(iconPath) : null;
 
-    try {
-        const ownerJid = `${config.OWNER_NUMBER.replace(/\D/g, '')}@s.whatsapp.net`;
+    const ownerJid = `${config.OWNER_NUMBER.replace(/\D/g, '')}@s.whatsapp.net`;
 
+    try {
         if (iconBuffer) {
             try {
                 await sock.sendMessage(ownerJid, {
@@ -435,45 +435,41 @@ async function sendWelcomeMessage(sock) {
             await sock.sendMessage(ownerJid, { image: { url: 'https://files.catbox.moe/ncgbn5.jpg' }, caption });
         }
         logMessage('SUCCESS', 'Welcome message sent to owner.');
-
-        // ── Auto-generate & deliver permanent Bundle v2 SESSION_ID to owner DM ──
-        try {
-            const v2Marker = path.join(sessionDir, '.v2_delivered');
-            const envSid = (config.SESSION_ID || '').trim();
-            const shouldSendSid = !global._sentBundleV2ThisBoot && (!envSid || !isV2SessionId(envSid) || !fs.existsSync(v2Marker));
-            if (shouldSendSid && fs.existsSync(credsPath)) {
-                const sid = encodeSessionBundle(sessionDir, { maxPreKeys: 60, maxSessions: 40, maxSenderKeys: 30 });
-                if (sid) {
-                    global._sentBundleV2ThisBoot = true;
-                    try { fs.writeFileSync(v2Marker, String(Date.now())); } catch {}
-                    const sidMessage = [
-                        `⚡ *TALHA-MD PERMANENT SESSION ID (V2)* ⚡`,
-                        `━━━━━━━━━━━━━━━━━━━━━━━━━`,
-                        `Aapka bot WhatsApp ke sath 100% connect ho chuka hai (full pre-keys & Signal state included)!`,
-                        ``,
-                        `Yeh aapka upgraded permanent *SESSION_ID* hai jo Render / Koyeb / VPS par 24/7 run karne ke liye use karna hai:`,
-                        ``,
-                        `\`\`\`${sid}\`\`\``,
-                        ``,
-                        `📌 *24/7 Cloud Hosting Instructions:*`,
-                        `1. Render par jayein → Environment`,
-                        `2. Variable update/add karein:`,
-                        `   • Key: \`SESSION_ID\``,
-                        `   • Value: (upar wala naya code copy karein)`,
-                        `3. Save changes — restarts par Signal keys ab safe rahengi!`,
-                        ``,
-                        `⚠️ *Secret:* Yeh code kisi ke sath share na karein!`,
-                        `━━━━━━━━━━━━━━━━━━━━━━━━━`
-                    ].join('\n');
-                    await sock.sendMessage(ownerJid, { text: sidMessage });
-                    logMessage('SUCCESS', `Permanent v2 SESSION_ID (${sid.length} chars) delivered to owner DM.`);
-                }
-            }
-        } catch (sidErr) {
-            logMessage('WARN', `SESSION_ID delivery note: ${sidErr.message}`);
-        }
     } catch (e) {
         logMessage('WARN', `Welcome message failed: ${e.message}`);
+    }
+
+    // ── Auto-generate & deliver permanent Bundle v2 SESSION_ID to owner DM ──
+    try {
+        const v2Marker = path.join(sessionDir, '.v2_delivered');
+        const envSid = (config.SESSION_ID || '').trim();
+        const shouldSendSid = !global._sentBundleV2ThisBoot && (!envSid || !isV2SessionId(envSid) || !fs.existsSync(v2Marker));
+        if (shouldSendSid && fs.existsSync(credsPath)) {
+            const sid = encodeSessionBundle(sessionDir, { maxPreKeys: 60, maxSessions: 40, maxSenderKeys: 30 });
+            if (sid) {
+                global._sentBundleV2ThisBoot = true;
+                try { fs.writeFileSync(v2Marker, String(Date.now())); } catch {}
+                const sidNotice = [
+                    `⚡ *TALHA-MD PERMANENT SESSION ID (V2)* ⚡`,
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━`,
+                    `Aapka bot WhatsApp ke sath connect ho chuka hai (full pre-keys & Signal state included).`,
+                    ``,
+                    `📌 *Render par add karne ka tareeqa:*`,
+                    `1. Neeche wala *alag message* sirf long-press kar ke Copy karein`,
+                    `2. Render Dashboard → Environment → \`SESSION_ID\``,
+                    `3. Naya code paste kar ke *Save Changes* dabayein (taake restarts par session keys safe rahein).`,
+                    ``,
+                    `💡 Kisi bhi waqt dubara lene ke liye bot DM mein \`.getsession\` likhein.`,
+                    `⚠️ *Secret:* Yeh code kisi ke sath share na karein!`,
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━`
+                ].join('\n');
+                await sock.sendMessage(ownerJid, { text: sidNotice });
+                await sock.sendMessage(ownerJid, { text: sid });
+                logMessage('SUCCESS', `Permanent v2 SESSION_ID (${sid.length} chars) delivered to owner DM.`);
+            }
+        }
+    } catch (sidErr) {
+        logMessage('WARN', `SESSION_ID delivery note: ${sidErr.message}`);
     }
 
 }

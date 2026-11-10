@@ -450,18 +450,36 @@ module.exports = {
         if (cmd === 'getsession' || cmd === 'v2session') {
             if (!isRealOwner(ctx)) return send('⛔ Only the primary bot owner can export the session bundle.');
             try {
-                const { encodeSessionBundle } = require('../lib/session-bundle');
+                const { encodeSessionBundle, ensurePreKeys, countPreKeyFiles } = require('../lib/session-bundle');
                 const sessionDir = path.join(__dirname, '../session');
+                if (countPreKeyFiles(sessionDir) < 5) {
+                    await ensurePreKeys(sock, sessionDir, { minPreKeys: 5, uploadCount: 30 }).catch(() => {});
+                }
                 const sid = encodeSessionBundle(sessionDir, { maxPreKeys: 60, maxSessions: 40, maxSenderKeys: 30 });
                 if (!sid) return send('❌ No active `creds.json` session found on disk.');
+
                 const ownerNum = ((process.env.OWNER_NUMBER || '').trim()
                     || (typeof config.OWNER_NUMBER === 'string' ? config.OWNER_NUMBER.trim() : '')
                     || (global.botNum || '')).replace(/\D/g, '');
-                const ownerDmJid = ownerNum ? `${ownerNum}@s.whatsapp.net` : (ctx.isGroup ? from : jid);
+                const replyTarget = ctx.isGroup
+                    ? (ownerNum ? `${ownerNum}@s.whatsapp.net` : (from || jid))
+                    : (jid || from);
+
                 if (ctx.isGroup) {
-                    await send('🔒 Security: Bundle v2 SESSION_ID aapke personal DM mein bhej raha hoon.');
+                    await send('🔒 Security: Aapka permanent Bundle v2 SESSION_ID aapke personal DM mein bhej diya gaya hai.');
                 }
-                await sock.sendMessage(ownerDmJid, { text: sid });
+                await sock.sendMessage(replyTarget, {
+                    text: [
+                        `⚡ *TALHA-MD PERMANENT SESSION ID (V2)*`,
+                        `━━━━━━━━━━━━━━━━━━━━━━━━━`,
+                        `Neeche wale *alag message* ko 1 tap mein copy karein aur Render par add karein:`,
+                        `1. Render Dashboard → Environment`,
+                        `2. Key: \`SESSION_ID\``,
+                        `3. Value mein neeche wala code paste kar ke *Save Changes* dabayein.`,
+                        `⚠️ _Yeh code kisi ke sath share na karein!_`
+                    ].join('\n')
+                }, ctx.isGroup ? {} : { quoted: message });
+                await sock.sendMessage(replyTarget, { text: sid });
                 return;
             } catch (e) {
                 return send(`❌ Session export failed: ${e.message}`);

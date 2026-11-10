@@ -6,7 +6,7 @@ const axios = require('axios');
 const qs = require('querystring');
 const { extractMessageText } = require('../lib/message-utils');
 const { searchYouTube, downloadAudio, downloadVideo } = require('../lib/youtube-downloader');
-const { downloadTikTok } = require('./tiktok');
+const { downloadTikTok, fetchMediaBuffer } = require('./tiktok');
 const { resolveFacebook } = require('./facebook');
 const { resolveTwitterMedia } = require('./twitter');
 
@@ -67,18 +67,46 @@ async function resolveMedia(url, format = 'mp4') {
         };
     }
 
-    // 2. TikTok -> tiktok.js resolver
+    // 2. TikTok -> tiktok.js resolver (verified MP4 buffer / images / audio)
     if (/tiktok\.com/i.test(url)) {
         const tt = await downloadTikTok(url);
         if (tt) {
-            return {
-                url: (format === 'mp3' && tt.audioUrl) ? tt.audioUrl : tt.videoUrl,
-                filePath: tt.filePath,
-                type: (format === 'mp3' && tt.audioUrl) ? 'audio' : 'video',
-                title: tt.title || 'TikTok Video',
-                platform: 'TikTok',
-                author: tt.author || 'TikTok',
-            };
+            if (format === 'mp3' && tt.audioUrl) {
+                let audioBuf = null;
+                try {
+                    audioBuf = await fetchMediaBuffer(tt.audioUrl, tt.audioHeaders || {}, 'video');
+                } catch (_) {}
+                return {
+                    buffer: audioBuf || undefined,
+                    url: tt.audioUrl,
+                    type: 'audio',
+                    mimetype: 'audio/mpeg',
+                    title: tt.title || 'TikTok Audio',
+                    platform: 'TikTok',
+                    author: tt.author || 'TikTok',
+                };
+            }
+            if (tt.buffer || tt.filePath || tt.videoUrl) {
+                return {
+                    buffer: tt.buffer,
+                    url: tt.videoUrl,
+                    filePath: tt.filePath,
+                    type: 'video',
+                    mimetype: 'video/mp4',
+                    title: tt.title || 'TikTok Video',
+                    platform: 'TikTok',
+                    author: tt.author || 'TikTok',
+                };
+            }
+            if (Array.isArray(tt.images) && tt.images.length) {
+                return {
+                    buffer: tt.images[0],
+                    type: 'image',
+                    title: tt.title || 'TikTok Photo',
+                    platform: 'TikTok',
+                    author: tt.author || 'TikTok',
+                };
+            }
         }
     }
 
@@ -134,11 +162,11 @@ async function resolveMedia(url, format = 'mp4') {
         const res = await alldl(url);
         if (res?.data) {
             const d = res.data;
-            const chosen = (format === 'mp3' && d.download?.audio)
-                ? d.download.audio
-                : (d.download?.video || d.videoUrl || d.download?.image || d.url);
+            const chosen = (format === 'mp3' && (d.download?.audio || d.download?.music))
+                ? (d.download.audio || d.download.music)
+                : (d.download?.video || d.download?.no_watermark || d.download?.watermark || d.videoUrl || d.download?.image || d.url);
             if (chosen) {
-                const isImg = !(/\.mp4/i.test(chosen) || d.download?.video || d.videoUrl) && /\.(?:jpe?g|png|webp)/i.test(chosen);
+                const isImg = !(/\.mp4/i.test(chosen) || d.download?.video || d.download?.no_watermark || d.videoUrl) && /\.(?:jpe?g|png|webp)/i.test(chosen);
                 return {
                     url: chosen,
                     type: format === 'mp3' ? 'audio' : (isImg ? 'image' : 'video'),
@@ -244,7 +272,13 @@ module.exports = {
         let payload = null;
         if (media.buffer) payload = media.buffer;
         else if (media.filePath && fs.existsSync(media.filePath)) payload = fs.readFileSync(media.filePath);
-        else payload = { url: media.url };
+        else if (media.url) {
+            try {
+                payload = await fetchMediaBuffer(media.url, {}, media.type === 'image' ? 'image' : 'video');
+            } catch (_) {
+                payload = { url: media.url };
+            }
+        }
 
         try {
             if (media.type === 'audio' || format === 'mp3') {
