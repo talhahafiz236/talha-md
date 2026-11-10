@@ -21,7 +21,7 @@ module.exports = {
         const jid = message.key.remoteJid;
         const ref = args.length ? args.join(' ') : DAILY_VERSES[Math.floor(Math.random() * DAILY_VERSES.length)];
         try {
-            const res = await axios.get(`https://bible-api.com/${encodeURIComponent(ref)}`, { timeout: 10000 });
+            const res = await axios.get(`https://bible-api.com/${encodeURIComponent(ref)}`, { timeout: 15000 });
             const { reference, text, translation_name } = res.data;
             if (!text) throw new Error('Not found');
             await sock.sendMessage(jid, {

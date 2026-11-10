@@ -53,8 +53,14 @@ function loadPlugins() {
     const out = [];
     for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
         try {
-            const p = require(path.join(dir, f));
-            if (Array.isArray(p.commands) && p.commands.length) out.push(p);
+            const loaded = require(path.join(dir, f));
+            const items = Array.isArray(loaded) ? loaded : [loaded];
+            for (const p of items) {
+                if (p && Array.isArray(p.commands)) {
+                    const visible = p.commands.filter(c => !String(c).startsWith('__'));
+                    if (visible.length) out.push({ ...p, commands: visible });
+                }
+            }
         } catch { }
     }
     return out;

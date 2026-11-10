@@ -25,11 +25,33 @@ module.exports = {
             return sock.sendMessage(jid, { text: `❌ Invalid amount.`, contextInfo }, { quoted: message });
         }
         try {
-            const res  = await axios.get('https://api.frankfurter.app/latest', { params: { amount, from, to }, timeout: 8000 });
-            const rate = res.data.rates[to];
-            if (!rate) throw new Error(`Currency "${to}" not found`);
+            let rate = null;
+            let asOf = new Date().toISOString().split('T')[0];
+
+            try {
+                const res = await axios.get('https://api.frankfurter.app/latest', {
+                    params: { amount, from, to },
+                    timeout: 8000,
+                });
+                if (res.data?.rates?.[to]) {
+                    rate = res.data.rates[to];
+                    asOf = res.data.date || asOf;
+                }
+            } catch {}
+
+            // Fallback for currencies not supported by ECB/Frankfurter (e.g. PKR, KES, NGN, AED, SAR)
+            if (rate === null) {
+                const res = await axios.get(`https://open.er-api.com/v6/latest/${encodeURIComponent(from)}`, { timeout: 15000 });
+                const unitRate = res.data?.rates?.[to];
+                if (!unitRate) throw new Error(`Currency "${to}" not found`);
+                rate = amount * unitRate;
+                if (res.data?.time_last_update_utc) {
+                    asOf = res.data.time_last_update_utc.split(' ').slice(0, 4).join(' ');
+                }
+            }
+
             await sock.sendMessage(jid, {
-                text: `💱 *Currency Conversion*\n\n💵 *${amount.toLocaleString()} ${from}* → *${rate.toLocaleString()} ${to}*\n\n📅 _Rate as of ${res.data.date}_`,
+                text: `💱 *Currency Conversion*\n\n💵 *${amount.toLocaleString()} ${from}* → *${Number(rate).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${to}*\n\n📅 _Rate as of ${asOf}_`,
                 contextInfo
             }, { quoted: message });
         } catch (err) {

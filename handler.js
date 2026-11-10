@@ -5,6 +5,7 @@ const path = require('path');
 const config = require('./config');
 const { getStr, getActiveTheme } = require('./lib/theme');
 const { extractMessageText, unwrapMessageContent } = require('./lib/message-utils');
+const { dlBuffer } = require('./lib/dlmedia');
 const { recordUser } = require('./lib/database');
 
 let isJidGroup, areJidsSameUser, jidNormalizedUser, normalizeMessageContent;
@@ -79,11 +80,140 @@ function bindGroupCacheInvalidation(sock) {
 const sendTimestamps = [];
 const MAX_SENDS_PER_MIN = 120;
 
+// Track arrival time of the latest incoming message per chat so the first
+// user-facing reply waits at least MIN_RESPONSE_DELAY_MS (>= 1000ms).
+const incomingTimestampByJid = new Map();
+
+function markIncomingArrival(jid, ts = Date.now()) {
+    if (!jid) return;
+    const minDelay = Math.max(1000, Number(config.MIN_RESPONSE_DELAY_MS) || 1200);
+    incomingTimestampByJid.set(jid, {
+        ts,
+        readyAt: ts + minDelay,
+        replied: false,
+        composingSent: false,
+    });
+    if (incomingTimestampByJid.size > 2000) {
+        const now = Date.now();
+        for (const [k, v] of incomingTimestampByJid.entries()) {
+            if (now - v.ts > 10 * 60 * 1000) incomingTimestampByJid.delete(k);
+            if (incomingTimestampByJid.size <= 1500) break;
+        }
+    }
+}
+
+const CONTROL_MESSAGE_KEYS = new Set([
+    'delete', 'react', 'disappearingMessagesInChat', 'groupStatusMessage', 'pin', 'edit', 'protocolMessage'
+]);
+const USER_FACING_MESSAGE_KEYS = new Set([
+    'text', 'image', 'video', 'audio', 'document', 'sticker', 'contacts', 'contact',
+    'location', 'poll', 'buttons', 'list', 'interactive', 'template', 'product',
+    'viewOnceMessage', 'forward', 'ptv'
+]);
+
+function isUserFacingMessage(content) {
+    if (!content || typeof content !== 'object') return false;
+    const keys = Object.keys(content);
+    if (!keys.length) return false;
+    if (keys.some(k => CONTROL_MESSAGE_KEYS.has(k))) return false;
+    return keys.some(k => USER_FACING_MESSAGE_KEYS.has(k));
+}
+
+function cacheOutgoingMessage(sock, sentMsg) {
+    if (!sentMsg?.key?.id || !sentMsg?.key?.remoteJid || !sentMsg?.message) return;
+    const cacheKey = `${sentMsg.key.remoteJid}-${sentMsg.key.id}`;
+    if (!sock.__sentMessageCache) sock.__sentMessageCache = new Map();
+    sock.__sentMessageCache.set(cacheKey, {
+        message: sentMsg.message,
+        timestamp: Date.now(),
+    });
+    while (sock.__sentMessageCache.size > 1000) {
+        const oldest = sock.__sentMessageCache.keys().next().value;
+        if (!oldest) break;
+        sock.__sentMessageCache.delete(oldest);
+    }
+    if (typeof global.cacheSentMessage === 'function') {
+        try { global.cacheSentMessage(sentMsg); } catch {}
+    }
+}
+
+function wrapSocketMessaging(sock) {
+    if (!sock || sock.__talhaWrapped || typeof sock.sendMessage !== 'function') return sock;
+    sock.__talhaWrapped = true;
+    if (!sock.__sentMessageCache) sock.__sentMessageCache = new Map();
+    if (typeof sock.__getSentMessage !== 'function') {
+        sock.__getSentMessage = (key) => {
+            if (!key?.remoteJid || !key?.id) return undefined;
+            return sock.__sentMessageCache.get(`${key.remoteJid}-${key.id}`)?.message;
+        };
+    }
+
+    const origSendMessage = sock.sendMessage.bind(sock);
+
+    sock.sendMessage = async function (jid, content, opts = {}) {
+        const userFacing = Boolean(
+            jid
+            && !String(jid).endsWith('@newsletter')
+            && jid !== 'status@broadcast'
+            && isUserFacingMessage(content)
+        );
+
+        // Enforce >= MIN_RESPONSE_DELAY_MS (>= 1000ms) from incoming message arrival
+        if (userFacing && !opts?._skipMinDelay) {
+            const turn = incomingTimestampByJid.get(jid);
+            if (turn && !turn.replied) {
+                const minDelay = Math.max(1000, Number(config.MIN_RESPONSE_DELAY_MS) || 1200);
+                const readyAt = Math.max(turn.readyAt || 0, turn.ts + minDelay);
+                const remaining = readyAt - Date.now();
+                if (remaining > 0) {
+                    if (remaining > 200 && !turn.composingSent && typeof sock.sendPresenceUpdate === 'function') {
+                        turn.composingSent = true;
+                        sock.sendPresenceUpdate('composing', jid).catch(() => {});
+                    }
+                    await new Promise(r => setTimeout(r, remaining));
+                }
+                turn.replied = true;
+            }
+        }
+
+        // Clean internal flag if caller passed one
+        let sendOpts = opts;
+        if (opts && Object.prototype.hasOwnProperty.call(opts, '_skipMinDelay')) {
+            const { _skipMinDelay: _ignored, ...rest } = opts;
+            sendOpts = rest;
+        }
+
+        // @lid DM: await prekey session assertion before sending to prevent waiting/drop
+        if (userFacing && typeof jid === 'string' && jid.endsWith('@lid') && typeof sock.assertSessions === 'function') {
+            await sock.assertSessions([jid], false).catch(() => {});
+        }
+
+        let res;
+        try {
+            res = await origSendMessage(jid, content, sendOpts);
+        } catch (err) {
+            const msg = String(err?.message || '');
+            if (userFacing && /no sessions|session|prekey|mac|not-acceptable/i.test(msg) && typeof sock.assertSessions === 'function') {
+                await sock.assertSessions([jid], true).catch(() => {});
+                res = await origSendMessage(jid, content, sendOpts);
+            } else {
+                throw err;
+            }
+        }
+
+        if (res) cacheOutgoingMessage(sock, res);
+        return res;
+    };
+
+    return sock;
+}
+
 async function safeSend(sock, jid, content, opts = {}) {
     if (!jid || !sock?.sendMessage) return null;
+    wrapSocketMessaging(sock);
 
-    // Reject obviously invalid JIDs.  Valid DM suffixes: @s.whatsapp.net, @lid, @c.us
-    // Valid group suffix: @g.us.  Anything else (e.g. a bare phone number) is rejected.
+    // Reject obviously invalid JIDs. Valid DM suffixes: @s.whatsapp.net, @lid, @c.us
+    // Valid group suffix: @g.us. Anything else (e.g. a bare phone number) is rejected.
     const validSuffix = jid.endsWith('@s.whatsapp.net') || jid.endsWith('@lid')
         || jid.endsWith('@g.us') || jid.endsWith('@c.us') || jid.endsWith('@newsletter');
     if (!validSuffix) {
@@ -91,7 +221,6 @@ async function safeSend(sock, jid, content, opts = {}) {
         return null;
     }
 
-    const isLidDm  = jid.endsWith('@lid');
     const _preview = (content?.text || content?.caption || '[media]').toString().slice(0, 60);
     const _to      = jid.split('@')[0];
 
@@ -103,14 +232,6 @@ async function safeSend(sock, jid, content, opts = {}) {
         await new Promise(r => setTimeout(r, Math.min(wait, 1000)));
     }
     sendTimestamps.push(Date.now());
-
-    // @lid DM: establish the outbound E2E session (prekeys) before sending.
-    // Without this, Baileys queues the message but WA drops it silently because
-    // the bot has no registered send-session for that LID account.
-    // Use m.key.remoteJid directly — never reconstruct or remap to @s.whatsapp.net here.
-    if (isLidDm && typeof sock.assertSessions === 'function') {
-        sock.assertSessions([jid], false).catch(() => {});
-    }
 
     // Attempt 1 — primary: m.key.remoteJid as-is, full opts (quoted + contextInfo)
     try {
@@ -202,8 +323,8 @@ function withNewsletterContext(jid, content) {
 }
 
 function installNewsletterForwarding(sock) {
-    // Preserve clean, direct sock.sendMessage so messages are never rejected by WhatsApp servers
-    return sock;
+    // Wrap socket messaging once so delay, @lid session assertion, retry, and sent cache apply globally
+    return wrapSocketMessaging(sock);
 }
 
 // ─── Plugin loader ───────────────────────────────────────────────────────────
@@ -368,6 +489,9 @@ async function handleMessages(sock, message) {
         const sender = jid;
         if (!jid || !from) return;
 
+        wrapSocketMessaging(sock);
+        markIncomingArrival(jid);
+
         // ── Auto-presence: fire instantly on every incoming message ──────────
         if (!message.key.fromMe && (config.AUTO_TYPING || config.AUTO_RECORDING)) {
             const presenceType = config.AUTO_RECORDING ? 'recording' : 'composing';
@@ -483,14 +607,116 @@ async function handleMessages(sock, message) {
                 } catch {}
             }
         }
+        // Resolve sender identity & cached group metadata once so both onMessage hooks
+        // and command dispatch have accurate groupId / isAdmin / isBotAdmin / isOwner.
+        let isAdmin       = false;
+        let isBotAdmin    = false;
+        let groupMetadata = null;
+
+        if (isGroup) {
+            groupMetadata = await getCachedGroupMetadata(sock, jid);
+        }
+
+        const isLid = typeof from === 'string' && from.endsWith('@lid');
+        let resolvedFrom = from;
+
+        if (isLid) {
+            if (groupMetadata?.participants) {
+                for (const p of groupMetadata.participants) {
+                    const pLid = p.lid || '';
+                    if (pLid && (pLid === from || jidNormalizedUser(pLid) === jidNormalizedUser(from))) {
+                        resolvedFrom = p.id;
+                        break;
+                    }
+                }
+            }
+
+            if (resolvedFrom === from && global.lidPhoneCache?.size) {
+                const normLid = from.split(':')[0].split('@')[0];
+                const cachedPhone = global.lidPhoneCache.get(normLid)
+                    || global.lidPhoneCache.get(normLid + '@lid')
+                    || global.lidPhoneCache.get(from);
+                if (cachedPhone) {
+                    resolvedFrom = cachedPhone.includes('@')
+                        ? cachedPhone
+                        : `${cachedPhone.replace(/\D/g, '')}@s.whatsapp.net`;
+                }
+            }
+        }
+
+        const fromNum = jidToNum(resolvedFrom);
+        const ownerRaw = (process.env.OWNER_NUMBER || '').trim()
+            || (typeof config.OWNER_NUMBER === 'string' ? config.OWNER_NUMBER.trim() : '')
+            || (global.botNum || '');
+        const ownerNum  = ownerRaw.replace(/\D/g, '');
+        const botNum    = (global.botNum || '').replace(/\D/g, '');
+        const botLid    = jidNormalizedUser(global.botLid || '');
+        const fromNorm  = jidNormalizedUser(from);
+
+        const isSudo = global.sudoUsers?.size
+            ? (global.sudoUsers.has(from) || global.sudoUsers.has(fromNorm) || global.sudoUsers.has(resolvedFrom)
+               || (fromNum && [...global.sudoUsers].some(s => sameNumber(s.replace(/@.*/, ''), fromNum))))
+            : false;
+
+        const isOwner = message.key.fromMe
+            || (botLid && fromNorm === botLid)
+            || (botLid && jidNormalizedUser(resolvedFrom) === botLid)
+            || (fromNum && ownerNum && (fromNum === ownerNum || sameNumber(fromNum, ownerNum)))
+            || (fromNum && botNum   && (fromNum === botNum   || sameNumber(fromNum, botNum)))
+            || isSudo;
+
+        if (isGroup && groupMetadata?.participants) {
+            const botJid   = sock.user?.id || '';
+            const botPhone = botNum;
+
+            for (const p of groupMetadata.participants) {
+                const role = p.admin;
+                const isAdm = role === 'admin' || role === 'superadmin';
+                const pPhone = (p.id || '').split('@')[0].replace(/\D/g, '');
+                const pLid   = p.lid || '';
+
+                const isSender =
+                    areJidsSameUser(p.id, resolvedFrom) ||
+                    (pLid && (pLid === from || jidNormalizedUser(pLid) === jidNormalizedUser(from))) ||
+                    (pPhone && fromNum && sameNumber(pPhone, fromNum));
+
+                const isBot =
+                    areJidsSameUser(p.id, botJid) ||
+                    (botLid && (jidNormalizedUser(p.id) === botLid || (pLid && jidNormalizedUser(pLid) === botLid))) ||
+                    (botPhone && pPhone && sameNumber(pPhone, botPhone));
+
+                if (isSender) isAdmin    = isAdm;
+                if (isBot)    isBotAdmin = isAdm;
+            }
+        }
+
         // Plugin onMessage hooks fire concurrently in background without delaying command execution
         const onMsgPlugins = plugins.filter(p => typeof p.onMessage === 'function');
         if (onMsgPlugins.length > 0) {
+            const onMsgCtx = {
+                sock,
+                conn: sock,
+                m: message,
+                message,
+                jid,
+                chat: jid,
+                sender,
+                from,
+                groupId: isGroup ? jid : null,
+                isGroup,
+                isAdmin,
+                isBotAdmin,
+                isOwner,
+                isSudo,
+                prefix,
+                groupMetadata,
+                download: dlBuffer,
+                contextInfo: isGroup ? {} : GLOBAL_CONTEXT_INFO,
+                safeSend: (content, opts) => safeSend(sock, jid, content, opts),
+                reply: (replyText) => safeSend(sock, jid, { text: replyText }, { quoted: message }),
+            };
             Promise.allSettled(onMsgPlugins.map(p =>
-                p.onMessage(sock, message, text, {
-                    jid, sender, from, isGroup,
-                    contextInfo: isGroup ? {} : GLOBAL_CONTEXT_INFO
-                })
+                p.onMessage(sock, message, text, onMsgCtx)
             )).catch(() => {});
         }
 
@@ -602,108 +828,7 @@ async function handleMessages(sock, message) {
             }
         }
 
-        // ── Fetch group metadata FIRST — needed for LID resolution ────────────
-        // Modern WhatsApp sends group messages with a @lid (privacy/account ID)
-        // instead of a phone number. We must look up the LID in the participants
-        // list to find the sender's real phone JID before doing any comparisons.
-        let isAdmin       = false;
-        let isBotAdmin    = false;
-        let groupMetadata = null;
-
-        if (isGroup) {
-            groupMetadata = await getCachedGroupMetadata(sock, jid);
-        }
-
-        // ── Resolve sender phone (handle @lid format) ─────────────────────────
-        const isLid = typeof from === 'string' && from.endsWith('@lid');
-        let resolvedFrom = from; // will be the real phone JID if LID is resolved
-
-        if (isLid) {
-            // 1. Try group participants list (most accurate)
-            if (groupMetadata?.participants) {
-                for (const p of groupMetadata.participants) {
-                    const pLid = p.lid || '';
-                    if (pLid && (pLid === from || jidNormalizedUser(pLid) === jidNormalizedUser(from))) {
-                        resolvedFrom = p.id; // swap LID for real phone JID
-                        break;
-                    }
-                }
-            }
-
-            // 2. Fall back to the global LID→phone cache populated by silva.js
-            //    (every received message caches participant LID + phone via cacheLidPhone)
-            if (resolvedFrom === from && global.lidPhoneCache?.size) {
-                const normLid = from.split(':')[0].split('@')[0];
-                const cachedPhone = global.lidPhoneCache.get(normLid)
-                    || global.lidPhoneCache.get(normLid + '@lid')
-                    || global.lidPhoneCache.get(from);
-                if (cachedPhone) {
-                    resolvedFrom = cachedPhone.includes('@')
-                        ? cachedPhone
-                        : `${cachedPhone.replace(/\D/g, '')}@s.whatsapp.net`;
-                }
-            }
-        }
-
-        const fromNum = jidToNum(resolvedFrom);
-
-        // ── Resolve owner / bot phone numbers ─────────────────────────────────
-        // Pull directly from process.env first so stale config objects can't
-        // cause a false empty result, then fall through to config and global.
-        const ownerRaw  = (process.env.OWNER_NUMBER || '').trim()
-            || (typeof config.OWNER_NUMBER === 'string' ? config.OWNER_NUMBER.trim() : '')
-            || (global.botNum || '');
-        const ownerNum  = ownerRaw.replace(/\D/g, '');
-        const botNum    = (global.botNum || '').replace(/\D/g, '');
-
-        // In full-LID groups WhatsApp never exposes phone numbers — the only
-        // identifier is the account LID.  If the sender's LID matches the bot's
-        // own LID they are the same WhatsApp account → owner.
-        // Both sides must be normalised (strip :deviceSuffix) before comparing.
-        const botLid     = jidNormalizedUser(global.botLid || '');
-        const fromNorm   = jidNormalizedUser(from);
-
-        const isSudo = global.sudoUsers?.size
-            ? (global.sudoUsers.has(from) || global.sudoUsers.has(fromNorm) || global.sudoUsers.has(resolvedFrom)
-               || (fromNum && [...global.sudoUsers].some(s => sameNumber(s.replace(/@.*/, ''), fromNum))))
-            : false;
-
-        const isOwner = message.key.fromMe
-            || (botLid && fromNorm === botLid)
-            || (botLid && jidNormalizedUser(resolvedFrom) === botLid)
-            || (fromNum && ownerNum && (fromNum === ownerNum || sameNumber(fromNum, ownerNum)))
-            || (fromNum && botNum   && (fromNum === botNum   || sameNumber(fromNum, botNum)))
-            || isSudo;
-
-        // ── Resolve group admin status ────────────────────────────────────────
-        if (isGroup && groupMetadata?.participants) {
-            const botJid     = sock.user?.id || '';
-            const botPhone   = botNum;
-
-            for (const p of groupMetadata.participants) {
-                const role = p.admin;
-                const isAdm = role === 'admin' || role === 'superadmin';
-                const pPhone = (p.id || '').split('@')[0].replace(/\D/g, '');
-                const pLid   = p.lid || '';
-
-                // Is this participant the sender?
-                const isSender =
-                    areJidsSameUser(p.id, resolvedFrom) ||
-                    (pLid && (pLid === from || jidNormalizedUser(pLid) === jidNormalizedUser(from))) ||
-                    (pPhone && fromNum && sameNumber(pPhone, fromNum));
-
-                // Is this participant the bot?
-                const isBot =
-                    areJidsSameUser(p.id, botJid) ||
-                    (botLid && (jidNormalizedUser(p.id) === botLid || (pLid && jidNormalizedUser(pLid) === botLid))) ||
-                    (botPhone && pPhone && sameNumber(pPhone, botPhone));
-
-                if (isSender) isAdmin    = isAdm;
-                if (isBot)    isBotAdmin = isAdm;
-            }
-        }
-
-        // ── Build unified context ─────────────────────────────────────────────
+        // ── Build unified context (identity & group metadata already resolved above) ─
         const ctx = {
             sock,
             conn:          sock,
@@ -713,6 +838,7 @@ async function handleMessages(sock, message) {
             from,                 // = individual who typed the command
             jid,
             chat:          jid,
+            groupId:       isGroup ? jid : null,
             isGroup,
             isAdmin,
             isBotAdmin,
@@ -723,6 +849,7 @@ async function handleMessages(sock, message) {
             prefix,               // primary/canonical prefix for help text
             usedPrefix,           // the actual prefix that triggered this command
             groupMetadata,
+            download:      dlBuffer,
             contextInfo:   isGroup ? {} : GLOBAL_CONTEXT_INFO,
             mentionedJid:  msg.extendedTextMessage?.contextInfo?.mentionedJid || [],
             safeSend:      (content, opts) => safeSend(sock, jid, content, opts),
@@ -775,7 +902,7 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
-                continue;
+                break;
             }
 
             if (!isGroup && !allowPrivate) {
@@ -788,7 +915,7 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
-                continue;
+                break;
             }
 
             // ── Bot admin guard ───────────────────────────────────────────────
@@ -802,7 +929,7 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
-                continue;
+                break;
             }
 
             // ── Permission check ──────────────────────────────────────────────
@@ -826,7 +953,7 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
-                continue;
+                break;
             }
 
             // ── Prediction note: let user know what command was resolved ────
@@ -877,4 +1004,17 @@ async function handleMessages(sock, message) {
     }
 }
 
-module.exports = { handleMessages, safeSend, setupConnectionHandlers, installNewsletterForwarding, withNewsletterContext, PERM, plugins, extractMessageText };
+module.exports = {
+    handleMessages,
+    safeSend,
+    setupConnectionHandlers,
+    installNewsletterForwarding,
+    withNewsletterContext,
+    wrapSocketMessaging,
+    markIncomingArrival,
+    incomingTimestampByJid,
+    groupCache,
+    PERM,
+    plugins,
+    extractMessageText
+};

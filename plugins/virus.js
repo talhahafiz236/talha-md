@@ -10,9 +10,10 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { jid, groupId, sender, contextInfo }) => {
+        const chatId = jid || groupId || sender;
         if (!args[0]) {
-            return sock.sendMessage(sender, {
+            return sock.sendMessage(chatId, {
                 text: '❌ Please provide a URL to scan.\nExample: .scanurl https://example.com',
                 contextInfo
             }, { quoted: message });
@@ -22,13 +23,13 @@ module.exports = {
         if (!url.match(/^https?:\/\//)) url = 'https://' + url;
 
         try { new URL(url); } catch {
-            return sock.sendMessage(sender, {
+            return sock.sendMessage(chatId, {
                 text: '⚠️ Invalid URL format.',
                 contextInfo
             }, { quoted: message });
         }
 
-        await sock.sendMessage(sender, {
+        await sock.sendMessage(chatId, {
             text: '🔍 Scanning URL with VirusTotal... (may take ~15 seconds)',
             contextInfo
         }, { quoted: message });
@@ -59,7 +60,7 @@ module.exports = {
                     ? `⚠️ SUSPICIOUS (${stats.suspicious} engines flagged)`
                     : '✅ SAFE';
 
-            await sock.sendMessage(sender, {
+            await sock.sendMessage(chatId, {
                 text:
 `🛡️ *URL Safety Report*
 
@@ -76,7 +77,7 @@ module.exports = {
             }, { quoted: message });
         } catch (err) {
             console.error('[VirusScan]', err.message);
-            await sock.sendMessage(sender, {
+            await sock.sendMessage(chatId, {
                 text: `⚠️ Scan failed: ${err.message}`,
                 contextInfo
             }, { quoted: message });

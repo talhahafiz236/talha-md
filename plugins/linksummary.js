@@ -3,18 +3,20 @@
 const https = require('https');
 const http = require('http');
 
-function fetchPage(url, timeout = 8000) {
+function fetchPage(url, timeout = 8000, redirects = 0) {
     return new Promise((resolve, reject) => {
+        if (redirects > 5) return reject(new Error('Too many redirects'));
         const mod = url.startsWith('https') ? https : http;
-        const req = mod.get(url, { timeout, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SilvaMDBot/2.0)' } }, (res) => {
+        const req = mod.get(url, { timeout, headers: { 'User-Agent': 'TALHAMD-Bot/2.0 (compatible)' } }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                return fetchPage(res.headers.location, timeout).then(resolve).catch(reject);
+                const nextUrl = new URL(res.headers.location, url).toString();
+                return fetchPage(nextUrl, timeout, redirects + 1).then(resolve).catch(reject);
             }
             let data = '';
             res.setEncoding('utf8');
             res.on('data', chunk => {
                 data += chunk;
-                if (data.length > 100000) { res.destroy(); resolve(data); }
+                if (data.length > 150000) { res.destroy(); resolve(data); }
             });
             res.on('end', () => resolve(data));
         });
@@ -57,14 +59,14 @@ function extractMeta(html) {
 }
 
 function extractUrl(text) {
-    const match = text.match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/i);
-    return match ? match[0] : null;
+    const match = String(text || '').match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/i);
+    return match ? match[0].replace(/[),.!?]+$/, '') : null;
 }
 
 module.exports = {
-    commands: ['summarize', 'linkpreview', 'summarizelink', 'readlink', 'tldr'],
-    description: 'Summarize and preview any shared link/article',
-    usage: '.summarize <url> or reply to a message with a link',
+    commands: ['linkpreview', 'summarizelink', 'readlink'],
+    description: 'Preview and summarize any shared link or webpage',
+    usage: '.linkpreview <url> or reply to a message with a link',
     permission: 'public',
     group: true,
     private: true,
@@ -72,7 +74,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo } = ctx;
 
-        let url = args[0];
+        let url = extractUrl(args[0] || '');
         if (!url) {
             const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
             const quotedText = quoted?.conversation || quoted?.extendedTextMessage?.text || '';
@@ -82,12 +84,12 @@ module.exports = {
 
         if (!url) {
             return sock.sendMessage(jid, {
-                text: '🔗 *Link Summarizer*\n\nSummarize any article or webpage!\n\n*Usage:*\n• `.summarize https://example.com/article`\n• Reply to a message containing a link with `.summarize`\n\n_Extracts title, description, and key content._',
+                text: '🔗 *Link Preview & Reader*\n\nPreview any article or webpage!\n\n*Usage:*\n• `.linkpreview https://example.com/article`\n• Reply to a message containing a link with `.readlink`\n\n_Extracts title, description, and key content._',
                 contextInfo
             }, { quoted: message });
         }
 
-        await sock.sendMessage(jid, { text: '🔍 Fetching and summarizing...', contextInfo }, { quoted: message });
+        await sock.sendMessage(jid, { text: '🔍 Fetching link preview...', contextInfo }, { quoted: message });
 
         try {
             const html = await fetchPage(url);

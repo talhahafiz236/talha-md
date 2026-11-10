@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['spp', 'profile', 'getpp'],
+    commands:    ['spp', 'getpp'],
     description: 'Get a user\'s profile picture',
     permission:  'public',
     group:       true,

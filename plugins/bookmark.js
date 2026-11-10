@@ -13,7 +13,7 @@ function saveBookmarks(data) {
 }
 
 module.exports = {
-    commands: ['bookmark', 'save', 'saved', 'bookmarks', 'delbookmark', 'clearbookmarks'],
+    commands: ['bookmark', 'saved', 'bookmarks', 'delbookmark', 'clearbookmarks'],
     description: 'Save/bookmark messages to retrieve later via DM',
     usage: '.save <label> (reply to a message) | .saved | .delbookmark <number>',
     permission: 'public',

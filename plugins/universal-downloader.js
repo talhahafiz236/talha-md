@@ -5,10 +5,13 @@ const path = require('path');
 const axios = require('axios');
 const qs = require('querystring');
 const { extractMessageText } = require('../lib/message-utils');
+const { searchYouTube, downloadAudio, downloadVideo } = require('../lib/youtube-downloader');
+const { downloadTikTok } = require('./tiktok');
+const { resolveFacebook } = require('./facebook');
+const { resolveTwitterMedia } = require('./twitter');
 
-const SUPPORTED_HOSTS = /(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com|pinterest\.com)/i;
+const SUPPORTED_HOSTS = /(?:youtube\.com|youtu\.be|tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com|t\.co|pinterest\.com|pin\.it|soundcloud\.com)/i;
 const MAX_URL_LENGTH = 2048;
-const MAX_QUERY_LENGTH = 200;
 const AUTO_DOWNLOAD_FILE = path.join(__dirname, '..', 'data', 'auto-download.json');
 const autoDownloadChats = new Set();
 
@@ -25,7 +28,7 @@ function saveAutoDownloadSettings() {
 }
 
 function extractUrl(text) {
-    const match = String(text || '').match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com|pinterest\.com)\/[^\s<>]*/i);
+    const match = String(text || '').match(/(?:https?:\/\/)?(?:www\.|m\.|vt\.|vm\.)?(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com|pinterest\.com|soundcloud\.com)\/[^\s<>]*/i);
     if (!match) return '';
     const value = match[0].replace(/[),.!?]+$/, '');
     return /^https?:\/\//i.test(value) ? value : `https://${value}`;
@@ -39,61 +42,127 @@ function quotedInput(message) {
 }
 
 async function resolveMedia(url, format = 'mp4') {
-    // 1. If TikTok -> TikWM POST is ultra fast and reliable
-    if (/tiktok\.com/.test(url)) {
-        try {
-            const res = await axios.post('https://tikwm.com/api/', qs.stringify({ url }), {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                timeout: 20000
-            });
-            if (res.data?.code === 0 && res.data?.data) {
-                const d = res.data.data;
-                return {
-                    url: (format === 'mp3' && d.music) ? d.music : d.play,
-                    type: format === 'mp3' ? 'audio' : 'video',
-                    title: d.title || 'TikTok Video',
-                    platform: 'TikTok',
-                    author: d.author?.nickname || 'TikTok'
-                };
-            }
-        } catch (_) {}
+    // 1. YouTube -> lib/youtube-downloader.js
+    if (/(?:youtube\.com|youtu\.be)/i.test(url)) {
+        const track = await searchYouTube(url);
+        if (format === 'mp3') {
+            const audio = await downloadAudio(track.url);
+            return {
+                buffer: audio.buffer,
+                url: audio.url,
+                type: 'audio',
+                mimetype: audio.mimetype || 'audio/mpeg',
+                title: track.title || 'YouTube Audio',
+                platform: 'YouTube',
+            };
+        }
+        const video = await downloadVideo(track.url);
+        return {
+            buffer: video.buffer,
+            url: video.url,
+            type: 'video',
+            mimetype: 'video/mp4',
+            title: track.title || 'YouTube Video',
+            platform: 'YouTube',
+        };
     }
 
-    // 2. If Facebook -> Siputzx is ultra fast
-    if (/facebook\.com|fb\.watch/.test(url)) {
-        try {
-            const res = await axios.get(`https://api.siputzx.my.id/api/d/facebook?url=${encodeURIComponent(url)}`, { timeout: 15000 });
-            if (res.data?.status && res.data?.data?.downloads?.length) {
-                const hd = res.data.data.downloads.find(x => x.quality === 'HD') || res.data.data.downloads[0];
-                return {
-                    url: hd.url,
-                    type: 'video',
-                    title: res.data.data.title || 'Facebook Video',
-                    platform: 'Facebook'
-                };
-            }
-        } catch (_) {}
+    // 2. TikTok -> tiktok.js resolver
+    if (/tiktok\.com/i.test(url)) {
+        const tt = await downloadTikTok(url);
+        if (tt) {
+            return {
+                url: (format === 'mp3' && tt.audioUrl) ? tt.audioUrl : tt.videoUrl,
+                filePath: tt.filePath,
+                type: (format === 'mp3' && tt.audioUrl) ? 'audio' : 'video',
+                title: tt.title || 'TikTok Video',
+                platform: 'TikTok',
+                author: tt.author || 'TikTok',
+            };
+        }
     }
 
-    // 3. Multi-platform solver with rahad-all-downloader-v2
+    // 3. Facebook -> facebook.js resolver (fb-downloader-scrapper -> alldl -> yt-dlp)
+    if (/(?:facebook\.com|fb\.watch)/i.test(url)) {
+        const fb = await resolveFacebook(url);
+        if (fb) {
+            return {
+                url: fb.videoUrl,
+                filePath: fb.filePath,
+                type: 'video',
+                title: fb.title || 'Facebook Video',
+                platform: 'Facebook',
+            };
+        }
+    }
+
+    // 4. Twitter/X -> vxtwitter/fxtwitter/yt-dlp
+    if (/(?:twitter\.com|x\.com|t\.co)/i.test(url)) {
+        const tw = await resolveTwitterMedia(url);
+        const first = tw?.items?.[0];
+        if (first) {
+            return {
+                url: first.url,
+                filePath: first.filePath,
+                type: first.type === 'image' ? 'image' : 'video',
+                title: 'X / Twitter Media',
+                platform: 'Twitter/X',
+            };
+        }
+    }
+
+    // 5. SoundCloud -> soundcloud.js resolver
+    if (/soundcloud\.com/i.test(url)) {
+        try {
+            const { resolveSoundCloud } = require('./soundcloud');
+            const sc = await resolveSoundCloud(url);
+            if (sc?.audioUrl || sc?.filePath) {
+                return {
+                    url: sc.audioUrl,
+                    filePath: sc.filePath,
+                    type: 'audio',
+                    title: sc.title || 'SoundCloud Track',
+                    platform: 'SoundCloud',
+                };
+            }
+        } catch {}
+    }
+
+    // 6. Instagram / Pinterest / Generic -> rahad-all-downloader-v2
     try {
         const { alldl } = require('rahad-all-downloader-v2');
         const res = await alldl(url);
         if (res?.data) {
             const d = res.data;
-            const chosen = (format === 'mp3' && d.download?.audio) 
-                ? d.download.audio 
-                : (d.download?.video || d.videoUrl || d.url);
+            const chosen = (format === 'mp3' && d.download?.audio)
+                ? d.download.audio
+                : (d.download?.video || d.videoUrl || d.download?.image || d.url);
             if (chosen) {
+                const isImg = !(/\.mp4/i.test(chosen) || d.download?.video || d.videoUrl) && /\.(?:jpe?g|png|webp)/i.test(chosen);
                 return {
                     url: chosen,
-                    type: format === 'mp3' ? 'audio' : 'video',
+                    type: format === 'mp3' ? 'audio' : (isImg ? 'image' : 'video'),
                     title: d.title || 'Social Media Content',
                     platform: d.source || 'Social Media'
                 };
             }
         }
     } catch (_) {}
+
+    // 7. Pinterest oEmbed image fallback
+    if (/pinterest\.com|pin\.it/i.test(url)) {
+        try {
+            const res = await axios.get(`https://www.pinterest.com/oembed.json?url=${encodeURIComponent(url)}`, { timeout: 10000 });
+            if (res.data?.thumbnail_url) {
+                return {
+                    url: res.data.thumbnail_url,
+                    type: 'image',
+                    title: res.data.title || 'Pinterest Media',
+                    platform: 'Pinterest',
+                };
+            }
+        } catch {}
+    }
 
     return null;
 }
@@ -108,6 +177,7 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { sender, contextInfo, prefix = '.', reply, jid, isGroup, isAdmin, isOwner, silent } = ctx;
+        const chatTarget = jid || sender;
         const command = String(ctx.command || '').toLowerCase();
         if (command === 'autodl') {
             if (isGroup ? (!isAdmin && !isOwner) : !isOwner) {
@@ -132,32 +202,38 @@ module.exports = {
         const formatArg = (args.at(-1) || '').toLowerCase();
         const format = formatArg === 'mp3' || formatArg === 'mp4' ? formatArg : 'mp4';
 
-        if (!url || (url && url.length > MAX_URL_LENGTH)) {
+        if (!url || url.length > MAX_URL_LENGTH) {
             return reply([
                 `📥 *𝗧𝗔𝗟𝗛𝗔-𝗠𝗗 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗔𝗟 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗘𝗥*`,
                 `━━━━━━━━━━━━━━━━━━━━━━━━━`,
                 `💡 *Usage:* \`${prefix}download <url> [mp3|mp4]\``,
                 `💡 *Example:* \`${prefix}dl https://vt.tiktok.com/ZS...\``,
                 `━━━━━━━━━━━━━━━━━━━━━━━━━`,
-                `✨ *Supported Platforms:* YouTube, TikTok, Instagram, Facebook, Pinterest, X/Twitter.`
+                `✨ *Supported Platforms:* YouTube, TikTok, Instagram, Facebook, Pinterest, SoundCloud, X/Twitter.`
             ].join('\n'));
         }
 
-        if (url && !SUPPORTED_HOSTS.test(url)) {
-            return reply('❌ *Unsupported link.* Supported: YouTube, TikTok, Instagram, Facebook, Pinterest, and X.');
+        if (!SUPPORTED_HOSTS.test(url)) {
+            return reply('❌ *Unsupported link.* Supported: YouTube, TikTok, Instagram, Facebook, Pinterest, SoundCloud, and X.');
         }
 
         if (!silent) await reply(`⏳ *Resolving media stream as ${format.toUpperCase()}...*`);
 
-        const media = await resolveMedia(url, format);
-        if (!media?.url) {
+        let media = null;
+        try {
+            media = await resolveMedia(url, format);
+        } catch (err) {
+            console.warn(`[UniversalDownloader] resolve failed: ${err.message}`);
+        }
+
+        if (!media || (!media.url && !media.buffer && !media.filePath)) {
             return reply('❌ *Could not resolve download link.* The post may be private or removed.');
         }
 
         const caption = [
             `📥 *𝗧𝗔𝗟𝗛𝗔-𝗠𝗗 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗔𝗟 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗘𝗥*`,
             `━━━━━━━━━━━━━━━━━━━━━━━━━`,
-            `📝 *Title:* ${media.title.slice(0, 80)}`,
+            `📝 *Title:* ${(media.title || 'Media').slice(0, 80)}`,
             `🌐 *Platform:* ${media.platform}`,
             `📦 *Format:* ${format.toUpperCase()}`,
             `━━━━━━━━━━━━━━━━━━━━━━━━━`,
@@ -165,16 +241,29 @@ module.exports = {
             `📢 *Channel:* https://whatsapp.com/channel/0029Vb8l5Yd2f3EBHMz87B2S`
         ].join('\n');
 
+        let payload = null;
+        if (media.buffer) payload = media.buffer;
+        else if (media.filePath && fs.existsSync(media.filePath)) payload = fs.readFileSync(media.filePath);
+        else payload = { url: media.url };
+
         try {
             if (media.type === 'audio' || format === 'mp3') {
-                await sock.sendMessage(sender, {
-                    audio: { url: media.url },
-                    mimetype: 'audio/mpeg',
+                await sock.sendMessage(chatTarget, {
+                    audio: payload,
+                    mimetype: media.mimetype || 'audio/mpeg',
+                    ptt: false,
+                    contextInfo
+                }, { quoted: message });
+            } else if (media.type === 'image') {
+                await sock.sendMessage(chatTarget, {
+                    image: payload,
+                    caption,
                     contextInfo
                 }, { quoted: message });
             } else {
-                await sock.sendMessage(sender, {
-                    video: { url: media.url },
+                await sock.sendMessage(chatTarget, {
+                    video: payload,
+                    mimetype: 'video/mp4',
                     caption,
                     contextInfo
                 }, { quoted: message });
@@ -182,6 +271,10 @@ module.exports = {
         } catch (error) {
             console.warn(`[UniversalDownloader] send failed: ${error.message}`);
             return reply('❌ *Sending failed.* Media link may have expired or requires direct browser access.');
+        } finally {
+            if (media.filePath) {
+                try { if (fs.existsSync(media.filePath)) fs.unlinkSync(media.filePath); } catch {}
+            }
         }
     },
 

@@ -1,19 +1,18 @@
 'use strict';
-const axios = require('axios');
+
+const gemini = require('../lib/gemini');
 
 module.exports = {
-    commands: ['describe', 'caption', 'what', 'imgcaption', 'seethis', 'analyze'],
+    commands:    ['describe', 'caption', 'what', 'imgcaption', 'seethis', 'analyze'],
     description: 'AI describes/analyzes an image — reply to any photo and ask what it is',
     usage: '.describe (reply to an image)',
-    permission: 'public',
-    group: true,
-    private: true,
+    permission:  'public',
+    group:       true,
+    private:     true,
 
     run: async (sock, message, args, ctx) => {
         const { reply, safeSend, download } = ctx;
-        const jid = message.key.remoteJid;
 
-        // Find image — either direct or quoted
         const msg = message.message;
         const imgMsg = msg?.imageMessage
             || msg?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage
@@ -35,53 +34,37 @@ module.exports = {
         await safeSend({ text: `👁️ _Analyzing the image..._` }, { quoted: message });
 
         try {
-            // Download the image
             const imgBuffer = await download(imgMsg, 'image');
             if (!imgBuffer) throw new Error('Could not download image');
 
-            const base64 = imgBuffer.toString('base64');
             const mimeType = imgMsg.mimetype || 'image/jpeg';
-
-            // Try Gemini vision if key is available
-            const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || '';
-            if (apiKey) {
-                try {
-                    const { GoogleGenerativeAI } = require('@google/generative-ai');
-                    const genAI = new GoogleGenerativeAI(apiKey);
-                    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-                    const result = await model.generateContent([
-                        question,
-                        { inlineData: { data: base64, mimeType } },
-                    ]);
-                    const text = result.response.text().trim();
-                    return await safeSend({
-                        text: `👁️ *Image Analysis*\n\n${text}`,
-                    }, { quoted: message });
-                } catch { /* fall through */ }
+            const visionText = await gemini.analyzeImage(imgBuffer, question, mimeType);
+            if (visionText) {
+                return await safeSend({
+                    text: `👁️ *Image Analysis*\n\n${visionText}`,
+                }, { quoted: message });
             }
 
-            // Try pollinations.ai image description (send as URL via base64 data URI)
+            // Fallback metadata inspection via sharp (if no GEMINI_API_KEY configured)
+            let w = imgMsg.width || '?';
+            let h = imgMsg.height || '?';
+            let fmt = mimeType;
             try {
-                const dataUri = `data:${mimeType};base64,${base64}`;
-                const res = await axios.get(
-                    `https://image.pollinations.ai/prompt/${encodeURIComponent(question)}?nologo=true&width=512&height=512&model=flux`,
-                    { timeout: 15000, responseType: 'arraybuffer' }
-                );
-                // Pollinations generates images — not suitable for caption. Skip.
+                const sharp = require('sharp');
+                const meta = await sharp(imgBuffer).metadata();
+                if (meta?.width) w = meta.width;
+                if (meta?.height) h = meta.height;
+                if (meta?.format) fmt = meta.format.toUpperCase();
             } catch {}
-            // paxsenix.biz.id is dead (ENOTFOUND 2026-06) — removed.
 
-            // Last resort: describe basic image metadata
-            const sizeKb = Math.round(imgMsg.fileLength / 1024) || '?';
-            const w = imgMsg.width || '?';
-            const h = imgMsg.height || '?';
+            const sizeKb = Math.max(1, Math.round((imgBuffer.length || Number(imgMsg.fileLength) || 0) / 1024));
             await safeSend({
                 text:
                     `👁️ *Image Info*\n\n` +
-                    `📐 Resolution: ${w} × ${h}px\n` +
-                    `📦 Size: ${sizeKb} KB\n` +
-                    `🖼️ Type: ${mimeType}\n\n` +
-                    `_For full AI description, set a GEMINI_API_KEY in your secrets._`,
+                    `📐 *Resolution:* ${w} × ${h}px\n` +
+                    `📦 *Size:* ${sizeKb} KB\n` +
+                    `🖼️ *Format:* ${fmt}\n\n` +
+                    `_For full AI vision descriptions, add \`GEMINI_API_KEY\` to environment variables._`,
             }, { quoted: message });
 
         } catch (e) {

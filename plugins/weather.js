@@ -10,16 +10,17 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { jid, groupId, sender, contextInfo }) => {
+        const chatId = jid || groupId || sender;
         if (!args.length) {
-            return sock.sendMessage(sender, {
+            return sock.sendMessage(chatId, {
                 text: '❌ Please provide a location.\nExample: .weather Nairobi',
                 contextInfo
             }, { quoted: message });
         }
 
         const location = args.join(' ');
-        const loading  = await sock.sendMessage(sender, {
+        const loading  = await sock.sendMessage(chatId, {
             text: '⏳ Fetching weather data...',
             contextInfo
         }, { quoted: message });
@@ -32,9 +33,9 @@ module.exports = {
 
             const iconUrl = `https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png`;
 
-            if (loading) await sock.sendMessage(sender, { delete: loading.key });
+            if (loading) await sock.sendMessage(chatId, { delete: loading.key }).catch(() => {});
 
-            await sock.sendMessage(sender, {
+            await sock.sendMessage(chatId, {
                 image:   { url: iconUrl },
                 caption:
 `🌍 *${data.name}, ${data.sys.country} — Weather Report*
@@ -50,10 +51,11 @@ _Powered by ${getStr('botName') || 'TALHA MD'}_`,
             }, { quoted: message });
         } catch (err) {
             console.error('[Weather]', err.message);
+            if (loading) await sock.sendMessage(chatId, { delete: loading.key }).catch(() => {});
             const msg = err.response?.status === 404
                 ? '❌ Location not found. Please check the name.'
                 : '❌ Failed to fetch weather. Try again later.';
-            await sock.sendMessage(sender, { text: msg, contextInfo }, { quoted: message });
+            await sock.sendMessage(chatId, { text: msg, contextInfo }, { quoted: message });
         }
     }
 };

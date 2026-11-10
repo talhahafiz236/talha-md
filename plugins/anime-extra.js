@@ -26,22 +26,27 @@ function scoreBar(score) {
 
 // ─── Anime Quote ────────────────────────────────────────────────────────────
 
-async function fetchAnimeQuote() {
-    // Primary: animechan.io
-    try {
-        const resp = await axios.get('https://animechan.io/api/v1/quotes/random', { timeout: 8000 });
-        const q = resp.data?.data;
-        if (q?.content) return { quote: q.content, character: q.character?.name || 'Unknown', anime: q.anime?.name || 'Unknown' };
-    } catch {}
+const ANIME_QUOTES = [
+    { quote: "If you don't take risks, you can't create a future!", character: "Monkey D. Luffy", anime: "One Piece" },
+    { quote: "Hard work is worthless for those that don't believe in themselves.", character: "Naruto Uzumaki", anime: "Naruto" },
+    { quote: "Power comes in response to a need, not a desire.", character: "Son Goku", anime: "Dragon Ball Z" },
+    { quote: "The world isn't perfect. But it's there for us, doing the best it can.", character: "Roy Mustang", anime: "Fullmetal Alchemist: Brotherhood" },
+    { quote: "Whatever you lose, you'll find it again. But what you throw away you'll never get back.", character: "Himura Kenshin", anime: "Rurouni Kenshin" },
+    { quote: "If you win, you live. If you lose, you die. If you don't fight, you can't win!", character: "Eren Yeager", anime: "Attack on Titan" },
+    { quote: "It's not the face that makes someone a monster, it's the choices they make with their lives.", character: "Naruto Uzumaki", anime: "Naruto Shippuden" },
+    { quote: "Fear is not evil. It tells you what your weakness is.", character: "Gildarts Clive", anime: "Fairy Tail" },
+];
 
-    // Fallback: zenquotes (generic but good)
+async function fetchAnimeQuote() {
+    if (Math.random() < 0.7) {
+        return ANIME_QUOTES[Math.floor(Math.random() * ANIME_QUOTES.length)];
+    }
     try {
-        const resp = await axios.get('https://zenquotes.io/api/random', { timeout: 8000 });
+        const resp = await axios.get('https://zenquotes.io/api/random', { timeout: 6000 });
         const q = resp.data?.[0];
         if (q?.q) return { quote: q.q, character: q.a, anime: 'Wisdom' };
     } catch {}
-
-    return { quote: 'Even if I\'m worthless and carry demon blood... I want to be human!', character: 'Inuyasha', anime: 'Inuyasha' };
+    return ANIME_QUOTES[Math.floor(Math.random() * ANIME_QUOTES.length)];
 }
 
 // ─── Handlers ───────────────────────────────────────────────────────────────

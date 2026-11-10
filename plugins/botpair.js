@@ -4,7 +4,7 @@ const { startSubBot } = require('../lib/subbot');
 const { resolvePhoneJid } = require('../lib/phone-utils');
 
 module.exports = {
-    commands:    ['pair', 'paircode', 'clone', 'getpair', 'subbot'],
+    commands:    ['pair', 'paircode', 'clone', 'getpair'],
     description: 'Connect a sub-bot or clone your WhatsApp directly from DM by typing .pair',
     usage:       '.pair  (in DM) OR .pair <phone_number>',
     permission:  'public',

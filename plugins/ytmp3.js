@@ -36,7 +36,7 @@ module.exports = {
 
             await sock.sendMessage(chatTarget, {
                 audio:    audioPayload,
-                mimetype: 'audio/mp4',
+                mimetype: audioResult.mimetype || 'audio/mpeg',
                 ptt:      false,
                 contextInfo
             }, { quoted: message });

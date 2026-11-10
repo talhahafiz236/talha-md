@@ -35,10 +35,15 @@ module.exports = {
         }, { quoted: message });
     },
 
-    onMessage: async (sock, message, { groupId, sender }) => {
+    onMessage: async (sock, message, textOrCtx, maybeCtx) => {
+        const ctx = (textOrCtx && typeof textOrCtx === 'object') ? textOrCtx : (maybeCtx || {});
+        const groupId = ctx.groupId || (message?.key?.remoteJid?.endsWith('@g.us') ? message.key.remoteJid : null);
         if (!groupId || !global.antispamGroups?.has(groupId)) return;
+        if (message?.key?.fromMe || ctx.isAdmin || ctx.isOwner) return;
+        const participant = message?.key?.participant || ctx.from || ctx.sender;
+        if (!participant || participant === groupId) return;
         const now  = Date.now();
-        const key  = `${groupId}:${sender}`;
+        const key  = `${groupId}:${participant}`;
         const hist = spamMap.get(key) || [];
         const recent = hist.filter(t => now - t < WINDOW);
         recent.push(now);
@@ -46,8 +51,8 @@ module.exports = {
         if (recent.length >= LIMIT) {
             spamMap.delete(key);
             try {
-                await sock.groupParticipantsUpdate(groupId, [sender], 'remove');
-                await sock.sendMessage(groupId, { text: `🚫 @${sender.split('@')[0]} was kicked for spamming.`, mentions: [sender] });
+                await sock.groupParticipantsUpdate(groupId, [participant], 'remove');
+                await sock.sendMessage(groupId, { text: `🚫 @${participant.split('@')[0]} was kicked for spamming.`, mentions: [participant] });
             } catch {}
         }
     }

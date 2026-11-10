@@ -12,8 +12,8 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, prefix, contextInfo }) => {
-        const cmd  = message.body?.split(' ')[0]?.replace(prefix, '').toLowerCase();
+    run: async (sock, message, args, { sender, prefix, contextInfo, command }) => {
+        const cmd  = (command || message.body?.split(' ')[0]?.replace(prefix, '') || '').toLowerCase();
         const text = args.join(' ');
         if (!text) {
             return sock.sendMessage(sender, {

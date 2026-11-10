@@ -1,41 +1,24 @@
 'use strict';
 
-const axios = require('axios');
+const gemini = require('../lib/gemini');
 
 async function askAI(query) {
-    // 1. Try pollinations OpenAI model (Fast & free, no API key needed)
     try {
-        const res = await axios.get(
-            `https://text.pollinations.ai/${encodeURIComponent(query.slice(0, 500))}?model=openai&seed=${Date.now() % 9999}`,
-            { timeout: 12000 }
-        );
-        if (typeof res.data === 'string' && res.data.trim()) {
-            return res.data.trim();
-        }
+        const res = await gemini.ask(query);
+        if (res && String(res).trim()) return String(res).trim();
     } catch {}
-
-    // 2. Try ch.at API
-    try {
-        const res = await axios.post(
-            'https://ch.at/api/chat',
-            { message: query },
-            { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
-        );
-        const t = res.data?.answer || res.data?.reply || res.data?.message || res.data?.response;
-        if (t && String(t).trim()) return String(t).trim();
-    } catch {}
-
     return '⚠️ AI servers are busy right now. Please try again in a moment.';
 }
 
 module.exports = {
-    commands:    ['ai', 'gpt', 'chatgpt', 'ask'],
-    description: 'Ask the AI a question (GPT-4o powered)',
+    commands:    ['ai', 'gpt', 'chatgpt'],
+    description: 'Ask the AI a question (TALHA-MD Neural Core)',
     permission:  'public',
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo, reply }) => {
+    run: async (sock, message, args, { jid, sender, contextInfo, reply }) => {
+        const target = jid || sender;
         const query = args.join(' ').trim();
         if (!query) {
             return reply('❌ Please provide a question!\n\n*Example:* `.ai What is artificial intelligence?`');
@@ -45,7 +28,7 @@ module.exports = {
 
         try {
             const response = await askAI(query);
-            await sock.sendMessage(sender, {
+            await sock.sendMessage(target, {
                 text: `🤖 *TALHA-MD AI ASSISTANT*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n❓ *Question:* ${query}\n\n💡 *Answer:*\n${response}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n_Powered by TALHA-MD Neural Core_`,
                 contextInfo
             }, { quoted: message });

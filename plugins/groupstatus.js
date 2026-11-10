@@ -57,12 +57,9 @@ function box(title, lines) {
 }
 
 module.exports = {
-    commands:    ['groupstatus', 'ginfo', 'groupinfo', 'grpinfo', 'gstatus',
-                  'adminlist', 'gadmins', 'groupstats', 'gstats',
-                  'joinlog', 'gjoinlog', 'groupage', 'gage',
-                  'exportgroup', 'gexport'],
+    commands:    ['gstatus', 'gadmins', 'gstats', 'joinlog', 'gjoinlog', 'groupage', 'gage', 'exportgroup', 'gexport'],
     description: 'Detailed group info, admin list, activity stats, join/leave log, age and export',
-    usage:       '.ginfo | .adminlist | .groupstats | .joinlog | .groupage | .exportgroup',
+    usage:       '.gstatus | .gadmins | .gstats | .joinlog | .groupage | .exportgroup',
     permission:  'public',
     group:       true,
     private:     false,
@@ -71,6 +68,7 @@ module.exports = {
         const { jid, contextInfo, isAdmin, isOwner } = ctx;
 
         const rawCmd = (
+            ctx.command ||
             message.message?.extendedTextMessage?.text ||
             message.message?.conversation || ''
         ).trim().split(/\s+/)[0].replace(/^[^\w]/, '').toLowerCase();

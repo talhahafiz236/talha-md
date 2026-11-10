@@ -72,21 +72,17 @@ module.exports = {
 
         if (cmd === 'sportnews') {
             try {
-                const q   = (text || 'football').toLowerCase();
-                const cat = q.includes('basket') ? 'sports' : q.includes('tennis') ? 'sports' : 'sports';
-                const res = await axios.get(
-                    `https://saurav.tech/NewsAPI/top-headlines/category/${cat}/us.json`,
-                    { timeout: 10000 }
-                );
-                const articles = (res.data?.articles || []).slice(0, 5);
-                if (!articles.length) throw new Error('no articles');
-                const list = articles.map((a, i) =>
-                    `*${i + 1}.* ${a.title}\n   📰 ${a.source?.name} | ${a.publishedAt?.split('T')[0]}`
-                ).join('\n\n');
-                return send(`🏆 *Sports News*\n\n${list}\n\n🔗 https://www.bbc.com/sport`);
-            } catch {
-                return send(`🏆 *Sports News*\n\n📰 Latest coverage:\n• https://www.bbc.com/sport\n• https://www.espn.com\n• https://www.goal.com`);
-            }
+                const rssApi = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent('https://feeds.bbci.co.uk/sport/rss.xml')}&count=5`;
+                const res = await axios.get(rssApi, { timeout: 10000 });
+                const items = (res.data?.items || []).slice(0, 5);
+                if (items.length) {
+                    const list = items.map((a, i) =>
+                        `*${i + 1}.* ${a.title}\n   📰 BBC Sport | ${String(a.pubDate || '').split(' ')[0]}\n   🔗 ${a.link}`
+                    ).join('\n\n');
+                    return send(`🏆 *Sports News*\n\n${list}`);
+                }
+            } catch {}
+            return send(`🏆 *Sports News*\n\n📰 Latest coverage:\n• https://www.bbc.com/sport\n• https://www.espn.com\n• https://www.goal.com`);
         }
 
         if (cmd === 'standings') {

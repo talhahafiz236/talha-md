@@ -1,38 +1,48 @@
 'use strict';
 
-const ytdl = require('ytdl-core');
-
+const { searchYouTube } = require('../lib/youtube-downloader');
 
 module.exports = {
-    commands:    ['yt', 'youtube'],
-    description: 'Download a YouTube video',
+    commands:    ['ytinfo', 'ytdetails'],
+    description: 'Fetch metadata and details for a YouTube video or search query',
+    usage:       '.ytinfo <url or title>',
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
-        const url = args[0];
-        if (!url || !ytdl.validateURL(url)) {
-            return sock.sendMessage(sender, {
-                text: '🎬 Invalid YouTube URL!\nExample: .yt https://youtu.be/dQw4w9WgXcQ',
+    run: async (sock, message, args, { jid, sender, contextInfo }) => {
+        const target = jid || sender;
+        const query = args.join(' ').trim();
+        if (!query) {
+            return sock.sendMessage(target, {
+                text: '🎬 *Usage:* `.ytinfo <YouTube URL or title>`\n\n_Use `.ytmp4` for video download or `.play` / `.ytmp3` for MP3 audio._',
                 contextInfo
             }, { quoted: message });
         }
         try {
-            const info    = await ytdl.getInfo(url);
-            const format  = ytdl.chooseFormat(info.formats, { quality: 'highest' });
-            const details = info.videoDetails;
+            const info = await searchYouTube(query);
+            const caption = [
+                `🎬 *YouTube Details*`,
+                `━━━━━━━━━━━━━━━━━━━━`,
+                `📌 *Title:* ${info.title}`,
+                `👤 *Channel:* ${info.author || 'YouTube'}`,
+                info.duration ? `⏱️ *Duration:* ${info.duration}` : '',
+                `🔗 *URL:* ${info.url}`,
+                `━━━━━━━━━━━━━━━━━━━━`,
+                `_Download with \`.ytmp4 ${info.url}\` or \`.ytmp3 ${info.url}\`_`,
+            ].filter(Boolean).join('\n');
 
-            await sock.sendMessage(sender, {
-                video:   { url: format.url },
-                caption:
-`▶️ *${details.title}*
-👤 ${details.author.name}  •  ⏱ ${Math.floor(details.lengthSeconds / 60)}m ${details.lengthSeconds % 60}s`,
-                contextInfo
-            }, { quoted: message });
+            if (info.thumbnail) {
+                await sock.sendMessage(target, {
+                    image: { url: info.thumbnail },
+                    caption,
+                    contextInfo
+                }, { quoted: message });
+            } else {
+                await sock.sendMessage(target, { text: caption, contextInfo }, { quoted: message });
+            }
         } catch (err) {
-            console.error('[YT]', err.message);
-            await sock.sendMessage(sender, {
-                text: `❌ Failed to download video.\n${err.message}`,
+            await sock.sendMessage(target, {
+                text: `❌ Could not fetch YouTube info: ${err.message}`,
                 contextInfo
             }, { quoted: message });
         }

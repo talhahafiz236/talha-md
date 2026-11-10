@@ -37,14 +37,52 @@ module.exports = {
         let userData = null;
         const ENDPOINTS = [
             {
-                name: 'TikWM',
+                name: 'TikTokWeb',
+                fetch: async () => {
+                    const { data: html } = await axios.get(
+                        `https://www.tiktok.com/@${encodeURIComponent(username)}`,
+                        {
+                            timeout: 14000,
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                                'Accept-Language': 'en-US,en;q=0.9',
+                                'Sec-Fetch-Dest': 'document',
+                                'Sec-Fetch-Mode': 'navigate',
+                                'Sec-Fetch-Site': 'none',
+                            }
+                        }
+                    );
+                    const m = String(html).match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
+                    if (!m) throw new Error('Profile data script not found');
+                    const parsed = JSON.parse(m[1]);
+                    const detail = parsed?.__DEFAULT_SCOPE__?.['webapp.user-detail'];
+                    const info = detail?.userInfo;
+                    if (!info?.user) throw new Error('User not found in TikTok payload');
+                    return {
+                        ...info.user,
+                        followerCount: info.stats?.followerCount ?? 0,
+                        followingCount: info.stats?.followingCount ?? 0,
+                        heartCount: info.stats?.heartCount ?? info.stats?.heart ?? 0,
+                        videoCount: info.stats?.videoCount ?? 0,
+                        friendCount: info.stats?.friendCount ?? 0,
+                    };
+                }
+            },
+            {
+                name: 'TikTokOEmbed',
                 fetch: async () => {
                     const { data } = await axios.get(
-                        `https://tikwm.com/api/user/info?unique_id=${encodeURIComponent(username)}`,
-                        { timeout: 12000, headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' } }
+                        `https://www.tiktok.com/oembed?url=${encodeURIComponent(`https://www.tiktok.com/@${username}`)}`,
+                        { timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' } }
                     );
-                    if (data?.code !== 0) throw new Error(data?.msg || 'TikWM error');
-                    return data.data?.user;
+                    if (!data?.author_name && !data?.author_unique_id) throw new Error('TikTok oEmbed empty');
+                    return {
+                        uniqueId: data.author_unique_id || username,
+                        nickname: data.author_name || username,
+                        signature: data.title || '',
+                        avatarLarger: data.thumbnail_url || '',
+                    };
                 }
             },
         ];

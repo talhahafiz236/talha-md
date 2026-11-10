@@ -17,8 +17,8 @@ module.exports = {
     permission:  'admin',
     group:       true,
     private:     false,
-    run: async (sock, message, args, { sender, groupId, prefix, isAdmin, contextInfo }) => {
-        const cmd   = message.body?.split(' ')[0]?.replace(prefix, '').toLowerCase();
+    run: async (sock, message, args, { sender, groupId, prefix, isAdmin, contextInfo, command }) => {
+        const cmd   = (command || message.body?.split(' ')[0]?.replace(prefix, '') || '').toLowerCase();
         const rules = loadRules();
 
         if (cmd === 'rules') {

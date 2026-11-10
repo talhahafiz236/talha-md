@@ -21,7 +21,7 @@ function modeLabel(m) {
 }
 
 module.exports = {
-    commands:    ['settings', 'config', 'botsettings', 'allsettings', 'statusconfig'],
+    commands:    ['settings', 'config', 'botsettings', 'allsettings'],
     description: 'Comprehensive control panel to view and toggle all bot settings',
     permission:  'public',
     group:       true,

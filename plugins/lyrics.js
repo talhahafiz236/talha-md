@@ -1,9 +1,7 @@
 'use strict';
 const axios = require('axios');
 
-// lyrics.ovh is dead (ECONNREFUSED / no response) — removed.
-// Using some-random-api.com/lyrics (confirmed working 2026) as primary.
-// Fallback: provide Genius/AZLyrics search links.
+const UA = 'TALHAMD-Bot/2.0';
 
 module.exports = {
     commands:    ['lyrics', 'lyric'],
@@ -15,43 +13,62 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { contextInfo } = ctx;
-        const jid = message.key.remoteJid;
+        const jid = ctx.jid || message.key.remoteJid;
         if (!args.length) {
             return sock.sendMessage(jid, {
                 text: `❌ *Usage:* \`.lyrics <artist> - <song>\`\n\n_Example:_ \`.lyrics Drake - God's Plan\``,
                 contextInfo
             }, { quoted: message });
         }
-        const query  = args.join(' ');
-        const sep    = query.includes(' - ') ? query.split(' - ') : [null, query];
-        const artist = sep[0]?.trim() || '';
-        const title  = sep[1]?.trim() || sep[0]?.trim() || query;
+        const query   = args.join(' ');
+        const sep     = query.includes(' - ') ? query.split(' - ') : [null, query];
+        const artist  = sep[0]?.trim() || '';
+        const title   = sep[1]?.trim() || sep[0]?.trim() || query;
         const searchQ = artist ? `${artist} ${title}` : title;
 
         await sock.sendPresenceUpdate('composing', jid);
 
-        // Strategy 1: some-random-api.com/lyrics
+        // Strategy 1: lrclib.net (fast, reliable, no API key)
+        try {
+            const res = await axios.get('https://lrclib.net/api/search', {
+                params: { q: searchQ },
+                headers: { 'User-Agent': UA },
+                timeout: 12000,
+            });
+            const hits = Array.isArray(res.data) ? res.data : [];
+            const hit = hits.find(item => item?.plainLyrics && item.plainLyrics.trim().length > 20)
+                     || hits.find(item => item?.syncedLyrics && item.syncedLyrics.trim().length > 20);
+            if (hit) {
+                const raw = (hit.plainLyrics || hit.syncedLyrics.replace(/\[\d{2}:\d{2}(?:\.\d+)?\]\s*/g, '')).trim();
+                const lyrics = raw.slice(0, 3500);
+                const trunc  = raw.length > 3500 ? '\n_[…truncated]_' : '';
+                return sock.sendMessage(jid, {
+                    text: `🎵 *${hit.trackName || hit.name || title}* — ${hit.artistName || artist || 'Unknown'}\n\n${lyrics}${trunc}`,
+                    contextInfo
+                }, { quoted: message });
+            }
+        } catch {}
+
+        // Strategy 2: some-random-api.com/lyrics
         try {
             const res = await axios.get(
                 `https://some-random-api.com/lyrics?title=${encodeURIComponent(searchQ)}`,
-                { headers: { 'User-Agent': 'SilvaMD-Bot/2.0' }, timeout: 12000 }
+                { headers: { 'User-Agent': UA }, timeout: 10000 }
             );
             const d   = res.data;
             const raw = d?.lyrics;
-            if (!raw || raw.length < 10) throw new Error('empty');
-            const lyrics  = raw.trim().slice(0, 3500);
-            const trunc   = raw.length > 3500 ? '\n_[…truncated]_' : '';
-            const trackTitle  = d?.title  || title;
-            const trackArtist = d?.author || artist || 'Unknown';
-            return sock.sendMessage(jid, {
-                text: `🎵 *${trackTitle}* — ${trackArtist}\n\n${lyrics}${trunc}`,
-                contextInfo
-            }, { quoted: message });
+            if (raw && raw.length >= 10) {
+                const lyrics = raw.trim().slice(0, 3500);
+                const trunc  = raw.length > 3500 ? '\n_[…truncated]_' : '';
+                return sock.sendMessage(jid, {
+                    text: `🎵 *${d?.title || title}* — ${d?.author || artist || 'Unknown'}\n\n${lyrics}${trunc}`,
+                    contextInfo
+                }, { quoted: message });
+            }
         } catch {}
 
-        // Strategy 2: genius.com unofficial search scrape
+        // Strategy 3: genius.com unofficial search scrape
         try {
-            const q   = searchQ.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '');
             const res = await axios.get(`https://genius.com/api/search/song?q=${encodeURIComponent(searchQ)}&per_page=1`, {
                 headers: { 'User-Agent': 'Mozilla/5.0', 'X-Genius-iOS-Version': '6.4.0' },
                 timeout: 8000
@@ -76,9 +93,8 @@ module.exports = {
             }
         } catch {}
 
-        // Fallback: search links
-        const geniusQ   = encodeURIComponent(searchQ);
-        const azQ       = encodeURIComponent(searchQ.toLowerCase().replace(/\s+/g, '+'));
+        const geniusQ = encodeURIComponent(searchQ);
+        const azQ     = encodeURIComponent(searchQ.toLowerCase().replace(/\s+/g, '+'));
         await sock.sendMessage(jid, {
             text:
                 `🎵 *Lyrics: "${searchQ}"*\n\n` +

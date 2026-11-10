@@ -4,7 +4,7 @@ const moment = require('moment-timezone');
 const config = require('../config');
 
 module.exports = {
-    commands:    ['repo', 'repository', 'github', 'sc'],
+    commands:    ['repo', 'repository', 'sc'],
     description: 'Show TALHA MD repository and bot info',
     permission:  'public',
     group:       true,

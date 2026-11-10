@@ -164,6 +164,18 @@ function parseDownloadHtml(html) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// STRATEGY 1.5: rahad-all-downloader-v2
+// ═══════════════════════════════════════════════════════════════════════════
+async function tryAllDl(url) {
+    const { alldl } = require('rahad-all-downloader-v2');
+    const r = await alldl(url);
+    const vUrl = r?.data?.videoUrl || r?.data?.download?.video || r?.data?.download?.image || r?.data?.url;
+    if (!vUrl) throw new Error('AllDL: no media URL');
+    const isVid = /\.mp4/i.test(vUrl) || r?.data?.type === 'video' || Boolean(r?.data?.download?.video);
+    return [{ url: vUrl, type: isVid ? 'video' : 'image', caption: r?.data?.title || '' }];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY 1: Authenticated session cookie (most reliable from server IPs)
 // Set your Instagram sessionid via .setigsession <cookie> or INSTAGRAM_SESSION env
 // ═══════════════════════════════════════════════════════════════════════════
@@ -622,6 +634,7 @@ module.exports = [
             const STRATEGIES = [
                 { name: 'Old Bot yt-dlp',   fn: () => tryOldBotYtDlp(url)     },
                 { name: 'cobalt.tools',    fn: () => tryCobalt(url)         },
+                { name: 'AllDL',           fn: () => tryAllDl(url)          },
                 { name: 'GraphQL',         fn: () => tryGraphQL(url)         },
                 { name: 'Mobile API',      fn: () => tryMobileApi(url)       },
                 { name: 'Embed Page',      fn: () => tryEmbedPage(url)       },

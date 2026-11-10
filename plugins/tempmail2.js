@@ -56,11 +56,7 @@ module.exports = {
                     const mail = new TempMail();
                     inbox = await mail.getInbox(address);
                 } catch {
-                    const res = await axios.get(`https://api.mail.gw/messages`, {
-                        headers: { Authorization: `Bearer ${mailSessions.get(from + '_token') || ''}` },
-                        timeout: 10000
-                    }).catch(() => null);
-                    inbox = res?.data?.['hydra:member'] || [];
+                    inbox = [];
                 }
 
                 if (!inbox?.length) {

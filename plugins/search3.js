@@ -136,16 +136,26 @@ module.exports = {
 
         if (cmd === 'yts') {
             try {
-                // play-dl YouTube search — no external API key needed
+                const yts = require('yt-search');
+                const sr = await yts(query);
+                const vids = (sr?.videos || []).slice(0, 5);
+                if (vids.length) {
+                    const list = vids.map((v, i) =>
+                        `*${i + 1}.* ${v.title}\n   ⏱ ${v.timestamp || 'N/A'} | 👤 ${v.author?.name || 'YouTube'}\n   🔗 ${v.url}`
+                    ).join('\n\n');
+                    return send(`▶️ *YouTube: "${query}"*\n\n${list}`);
+                }
+            } catch {}
+            try {
                 const results = await playdl.search(query, { source: { youtube: 'video' }, limit: 5 });
-                if (!results?.length) return send(`▶️ No YouTube results for: *${query}*`);
-                const list = results.map((v, i) =>
-                    `*${i + 1}.* ${v.title}\n   ⏱ ${v.durationRaw || 'N/A'} | 👤 ${v.channel?.name || 'N/A'}\n   🔗 ${v.url}`
-                ).join('\n\n');
-                return send(`▶️ *YouTube: "${query}"*\n\n${list}`);
-            } catch {
-                return send(`▶️ *YouTube: "${query}"*\n\n🔗 https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`);
-            }
+                if (results?.length) {
+                    const list = results.map((v, i) =>
+                        `*${i + 1}.* ${v.title}\n   ⏱ ${v.durationRaw || 'N/A'} | 👤 ${v.channel?.name || 'N/A'}\n   🔗 ${v.url}`
+                    ).join('\n\n');
+                    return send(`▶️ *YouTube: "${query}"*\n\n${list}`);
+                }
+            } catch {}
+            return send(`▶️ *YouTube: "${query}"*\n\n🔗 https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`);
         }
 
         if (cmd === 'spotifysearch') {

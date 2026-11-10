@@ -20,26 +20,29 @@ module.exports = {
         }
         const query = args.join(' ');
         try {
+            const headers = { 'User-Agent': 'TALHA-MD-Bot/2.0 (https://github.com/talhahafiz236/talha-md)', 'Accept': 'application/json' };
             const searchRes = await axios.get('https://en.wikipedia.org/w/api.php', {
                 params: { action: 'query', list: 'search', srsearch: query, format: 'json', srlimit: 1 },
+                headers,
                 timeout: 10000
             });
             const title = searchRes.data?.query?.search?.[0]?.title;
             if (!title) throw new Error('No results');
-            const summaryRes = await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { timeout: 10000 });
+            const summaryRes = await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { headers, timeout: 10000 });
             const { displaytitle, extract, thumbnail, content_urls } = summaryRes.data;
+            const cleanTitle = String(displaytitle || title).replace(/<[^>]+>/g, '').trim();
             const pageUrl = content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`;
             const summary = (extract || '').slice(0, 1200);
             const trunc   = (extract?.length || 0) > 1200 ? '\n_[…read more on Wikipedia]_' : '';
             if (thumbnail?.source) {
                 await sock.sendMessage(jid, {
                     image:   { url: thumbnail.source },
-                    caption: `📖 *${displaytitle}*\n\n${summary}${trunc}\n\n🔗 ${pageUrl}`,
+                    caption: `📖 *${cleanTitle}*\n\n${summary}${trunc}\n\n🔗 ${pageUrl}`,
                     contextInfo
                 }, { quoted: message });
             } else {
                 await sock.sendMessage(jid, {
-                    text: `📖 *${displaytitle}*\n\n${summary}${trunc}\n\n🔗 ${pageUrl}`,
+                    text: `📖 *${cleanTitle}*\n\n${summary}${trunc}\n\n🔗 ${pageUrl}`,
                     contextInfo
                 }, { quoted: message });
             }

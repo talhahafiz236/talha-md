@@ -85,7 +85,15 @@ const zlib = require('zlib'); // Added for session decompression
 const express = require('express');
 const P = require('pino');
 const QRCode = require('qrcode');
-const { handleMessages } = require('./handler');
+const { handleMessages, wrapSocketMessaging } = require('./handler');
+const {
+    encodeSessionBundle,
+    restoreSessionToDir,
+    ensurePreKeys,
+    backupSessionToDb,
+    restoreSessionFromDb,
+    isV2SessionId,
+} = require('./lib/session-bundle');
 const { handleStatusBroadcast } = require('./lib/statusManager');
 const { isDuplicateMessage, rememberMessageIfContent } = require('./lib/message-gate');
 const { trackUndecryptableMessage } = require('./lib/session-recovery');
@@ -154,55 +162,64 @@ function createDirIfNotExist(dir) {
 }
 createDirIfNotExist(sessionDir);
 
-// ✅ Load session from compressed base64 (or reuse existing session on disk)
+// ✅ Load session bundle (v2 prekeys+appstate or v1 creds.json) and optional DB backup
 async function loadSession() {
     try {
         const sid = (config.SESSION_ID || '').trim();
-        const hasTilde = sid.includes('~');
 
         if (sid) {
-            // Only restore from SESSION_ID if creds.json is missing.
-            // Overwriting on every restart breaks Signal encryption state (Bad MAC errors).
             if (!fs.existsSync(credsPath)) {
-                let b64data = sid;
-                if (sid.includes('~')) {
-                    const parts = sid.split('~');
-                    b64data = parts.slice(1).join('~');
-                }
-                const cleanB64 = b64data.replace('...', '').replace(/\s+/g, '').trim();
-                let decompressedData = null;
-                try {
-                    const compressedData = Buffer.from(cleanB64, 'base64');
-                    decompressedData = zlib.gunzipSync(compressedData).toString('utf8');
-                } catch {
-                    // Try direct base64 decode if not gzipped
-                    decompressedData = Buffer.from(cleanB64, 'base64').toString('utf8');
-                }
-                if (decompressedData) {
-                    JSON.parse(decompressedData); // validate JSON before writing
-                    fs.writeFileSync(credsPath, decompressedData, "utf8");
-                    logMessage('SUCCESS', "✅ NEW TALHA-MD SESSION LOADED SUCCESSFULLY");
+                const res = restoreSessionToDir(sid, sessionDir, { overwrite: false });
+                if (res.restored) {
+                    logMessage('SUCCESS', `✅ SESSION LOADED (v${res.version}, ${res.fileCount} files)`);
                 }
             } else {
-                logMessage('INFO', "📂 Using existing session from disk");
+                logMessage('INFO', '📂 Using existing session from disk');
             }
         } else if (fs.existsSync(credsPath)) {
-            // No SESSION_ID — reuse the session already on disk (Replit / local mode)
-            logMessage('INFO', "📂 Using existing session from disk");
-
+            logMessage('INFO', '📂 Using existing session from disk');
         } else {
-            // No session at all — Baileys will generate a QR code to scan
-            logMessage('WARN', "⚠️ No session found — scan the QR code to connect");
+            logMessage('WARN', '⚠️ No session found — scan the QR code or use Pairing Code to connect');
         }
 
+        // Hydrate any missing pre-keys/app-state keys from encrypted Postgres backup when configured
+        if (process.env.DATABASE_URL || config.DATABASE_URL) {
+            const dbRes = await Promise.race([
+                restoreSessionFromDb(sessionDir),
+                new Promise(r => setTimeout(() => r({ restored: false, reason: 'db_timeout' }), 4000))
+            ]);
+            if (dbRes?.restored) {
+                logMessage('SUCCESS', `✅ Restored ${dbRes.fileCount} session key file(s) from database backup`);
+            }
+        }
     } catch (e) {
         logMessage('ERROR', `Session Error: ${e.message}`);
-        logMessage('WARN', "⚠️ Session load failed — attempting QR fallback");
+        logMessage('WARN', '⚠️ Session load failed — attempting QR fallback');
     }
 }
 
-// ✅ Message Cache for Anti-Delete
+// ✅ Message Cache for Anti-Delete & Signal Retry getMessage
 const messageCache = new Map();
+
+global.cacheSentMessage = (sentMsg) => {
+    try {
+        if (!sentMsg?.key?.id || !sentMsg?.key?.remoteJid || !sentMsg?.message) return;
+        const cacheKey = `${sentMsg.key.remoteJid}-${sentMsg.key.id}`;
+        messageCache.set(cacheKey, {
+            message:     sentMsg.message,
+            pushName:    config.BOT_NAME || 'TALHA MD',
+            senderJid:   global.botJid || '',
+            senderPhone: global.botNum || '',
+            chatJid:     sentMsg.key.remoteJid,
+            timestamp:   Date.now(),
+        });
+        while (messageCache.size > 5000) {
+            const oldestKey = messageCache.keys().next().value;
+            if (!oldestKey) break;
+            messageCache.delete(oldestKey);
+        }
+    } catch (_) {}
+};
 
 // ✅ Message Logger Setup
 const logDir = path.join(__dirname, 'logs');
@@ -408,32 +425,38 @@ async function sendWelcomeMessage(sock) {
         }
         logMessage('SUCCESS', 'Welcome message sent to owner.');
 
-        // ── Auto-generate & deliver permanent SESSION_ID to owner DM ──
+        // ── Auto-generate & deliver permanent Bundle v2 SESSION_ID to owner DM ──
         try {
-            if (fs.existsSync(credsPath)) {
-                const credsRaw = fs.readFileSync(credsPath);
-                const sid = 'TALHA-MD~' + Buffer.from(credsRaw).toString('base64');
-                const sidMessage = [
-                    `⚡ *TALHA-MD PERMANENT SESSION ID* ⚡`,
-                    `━━━━━━━━━━━━━━━━━━━━━━━━━`,
-                    `Aapka bot WhatsApp ke sath 100% connect ho chuka hai!`,
-                    ``,
-                    `Yeh aapka permanent *SESSION_ID* hai jo aapko Render / Koyeb / VPS par 24/7 run karne ke liye use karna hai (taake laptop band karne ke baad bhi bot chalta rahe):`,
-                    ``,
-                    `\`\`\`${sid}\`\`\``,
-                    ``,
-                    `📌 *24/7 Cloud Hosting Instructions:*`,
-                    `1. Render ya Koyeb par jayein`,
-                    `2. Environment Variable add karein:`,
-                    `   • Key: \`SESSION_ID\``,
-                    `   • Value: (upar wala code copy karein)`,
-                    `3. Deploy karein — bot 24/7 cloud par live ho jayega!`,
-                    ``,
-                    `⚠️ *Secret:* Yeh code kisi ke sath share na karein!`,
-                    `━━━━━━━━━━━━━━━━━━━━━━━━━`
-                ].join('\n');
-                await sock.sendMessage(ownerJid, { text: sidMessage });
-                logMessage('SUCCESS', 'Permanent SESSION_ID delivered to owner DM.');
+            const v2Marker = path.join(sessionDir, '.v2_delivered');
+            const envSid = (config.SESSION_ID || '').trim();
+            const shouldSendSid = !global._sentBundleV2ThisBoot && (!envSid || !isV2SessionId(envSid) || !fs.existsSync(v2Marker));
+            if (shouldSendSid && fs.existsSync(credsPath)) {
+                const sid = encodeSessionBundle(sessionDir, { maxPreKeys: 60, maxSessions: 40, maxSenderKeys: 30 });
+                if (sid) {
+                    global._sentBundleV2ThisBoot = true;
+                    try { fs.writeFileSync(v2Marker, String(Date.now())); } catch {}
+                    const sidMessage = [
+                        `⚡ *TALHA-MD PERMANENT SESSION ID (V2)* ⚡`,
+                        `━━━━━━━━━━━━━━━━━━━━━━━━━`,
+                        `Aapka bot WhatsApp ke sath 100% connect ho chuka hai (full pre-keys & Signal state included)!`,
+                        ``,
+                        `Yeh aapka upgraded permanent *SESSION_ID* hai jo Render / Koyeb / VPS par 24/7 run karne ke liye use karna hai:`,
+                        ``,
+                        `\`\`\`${sid}\`\`\``,
+                        ``,
+                        `📌 *24/7 Cloud Hosting Instructions:*`,
+                        `1. Render par jayein → Environment`,
+                        `2. Variable update/add karein:`,
+                        `   • Key: \`SESSION_ID\``,
+                        `   • Value: (upar wala naya code copy karein)`,
+                        `3. Save changes — restarts par Signal keys ab safe rahengi!`,
+                        ``,
+                        `⚠️ *Secret:* Yeh code kisi ke sath share na karein!`,
+                        `━━━━━━━━━━━━━━━━━━━━━━━━━`
+                    ].join('\n');
+                    await sock.sendMessage(ownerJid, { text: sidMessage });
+                    logMessage('SUCCESS', `Permanent v2 SESSION_ID (${sid.length} chars) delivered to owner DM.`);
+                }
             }
         } catch (sidErr) {
             logMessage('WARN', `SESSION_ID delivery note: ${sidErr.message}`);
@@ -527,11 +550,16 @@ async function connectToWhatsApp() {
             const cacheKey = `${key.remoteJid}-${key.id}`;
             const cached = messageCache.get(cacheKey);
             if (cached?.message) return cached.message;
+            if (typeof sock?.__getSentMessage === 'function') {
+                const sent = sock.__getSentMessage(key);
+                if (sent) return sent;
+            }
             const stored = store.loadMessage(key.remoteJid, key.id);
             return stored?.message || undefined;
         }
     });
 
+    wrapSocketMessaging(sock);
     global.currentSock = sock;
 
     // bind the store so store.loadMessage works
@@ -812,6 +840,17 @@ async function connectToWhatsApp() {
                 logMessage('INFO', `Owner: ${config.OWNER_NUMBER} | Bot number: ${rawNum}`);
             }
 
+            // Ensure local Signal pre-keys exist (heals old v1 SESSION_ID on ephemeral hosts)
+            await ensurePreKeys(sock, sessionDir, {
+                minPreKeys: 5,
+                uploadCount: 30,
+                saveCreds,
+                logger: { info: (m) => logMessage('INFO', m) }
+            });
+            if (process.env.DATABASE_URL || config.DATABASE_URL) {
+                backupSessionToDb(sessionDir).catch(() => {});
+            }
+
             // Update profile & send welcome
             await updateProfileStatus(sock);
             await sendWelcomeMessage(sock);
@@ -895,7 +934,16 @@ async function connectToWhatsApp() {
         }
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    let _dbBackupTimer = null;
+    sock.ev.on('creds.update', async () => {
+        await saveCreds();
+        if (process.env.DATABASE_URL || config.DATABASE_URL) {
+            if (_dbBackupTimer) clearTimeout(_dbBackupTimer);
+            _dbBackupTimer = setTimeout(() => {
+                backupSessionToDb(sessionDir).catch(() => {});
+            }, 15000);
+        }
+    });
 
     // Capture LID ↔ phone mapping delivered by WhatsApp on connect.
     // Baileys 6.17.16+ stores this in creds automatically; this listener

@@ -24,7 +24,7 @@ function persistMemory() {
         fs.writeFileSync(temp, JSON.stringify(data, null, 2));
         fs.renameSync(temp, MEMORY_FILE);
     } catch (error) {
-        console.warn(`[Silva] memory persistence failed: ${error.message}`);
+        console.warn(`[TALHA-MD] memory persistence failed: ${error.message}`);
     }
 }
 
@@ -238,7 +238,7 @@ function findIntent(query) {
 // ── Built-in smart conversation engine (no API key needed) ───────────────────
 const smartResponses = [
     { p: /^(hi+|hello+|hey+|howdy|sup|yo+|hii+|ello)\b/i,
-      r: [`Hey! 👋 What can I do for you today?`, `Hello! 😊 How can I help you?`, `Hey there! I'm Silva, your WhatsApp assistant. What do you need? 🤖`] },
+      r: [`Hey! 👋 What can I do for you today?`, `Hello! 😊 How can I help you?`, `Hey there! I'm TALHA-MD, your WhatsApp assistant. What do you need? 🤖`] },
     { p: /how (are you|r u|are u|do you do)|what('?s| is) (up|good)|wassup|wyd\b/i,
       r: [`All systems go! ⚡ I'm here and ready to help. What do you need?`, `Running perfectly! 🤖 What can I do for you?`, `Doing great, thanks for asking! 😊 Ready to assist.`] },
     { p: /thank(s| you|u)|thx|ty\b/i,
@@ -246,7 +246,7 @@ const smartResponses = [
     { p: /good (morning|mornin|afternoon|evening|night)/i,
       r: [`Good morning! ☀️ Hope you have an amazing day!`, `Hey! 😊 Hope your day is going great!`, `Good day! 🌟 What can I help you with?`] },
     { p: /i('?m| am) bored|bored\b/i,
-      r: [`Let's fix that! 🎮 Try:\n• \`silva play <your fav song>\`\n• \`.joke\` for a laugh\n• \`.wyr\` for Would You Rather\n• \`.8ball will today be fun?\``] },
+      r: [`Let's fix that! 🎮 Try:\n• \`talha play <your fav song>\`\n• \`.joke\` for a laugh\n• \`.wyr\` for Would You Rather\n• \`.8ball will today be fun?\``] },
     { p: /i (love|like|adore) you|luv u|❤️/i,
       r: [`Aww! 🥰 I love you too (in a bot kind of way)! What can I help with?`, `That's sweet! 😊 Always here for you. What do you need?`] },
     { p: /you('?re| are) (great|amazing|awesome|the best|good|nice|cool|smart|brilliant)/i,
@@ -254,15 +254,15 @@ const smartResponses = [
     { p: /you (suck|('re|are) (bad|terrible|useless|stupid|trash))/i,
       r: [`That hurts 😢 but I'll try to do better! Let me know what went wrong.`, `I'm always improving! 🤖 Tell me what I can do better.`] },
     { p: /what('?s| is) your name|your name\b|who are you\b/i,
-      r: [`I'm *Silva* 🤖 — your intelligent WhatsApp assistant! Built on ${BOT_IDENTITY.name} v${BOT_IDENTITY.version}.`] },
+      r: [`I'm *TALHA-MD* 🤖 — your intelligent WhatsApp assistant! Built on ${BOT_IDENTITY.name} v${BOT_IDENTITY.version}.`] },
     { p: /what can you do|your (capabilities|powers|features|abilities)\b/i,
-      r: [`I can: 🎵 play music, 📸 make stickers, ⬇️ download from TikTok/Instagram/YouTube, 🌤️ check weather, 📚 search Wikipedia, 🌐 translate text, 👥 manage groups, and 1400+ commands! Type \`silva help\` to see everything.`] },
+      r: [`I can: 🎵 play music, 📸 make stickers, ⬇️ download from TikTok/Instagram/YouTube, 🌤️ check weather, 📚 search Wikipedia, 🌐 translate text, 👥 manage groups, and 150+ commands! Type \`talha help\` to see everything.`] },
     { p: /what time is it|current time|time now\b/i,
-      fn: () => `🕐 Current time: *${new Date().toLocaleTimeString('en-US', { timeZone: config.TIMEZONE || 'Africa/Nairobi', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}*` },
+      fn: () => `🕐 Current time: *${new Date().toLocaleTimeString('en-US', { timeZone: config.TIMEZONE || 'Asia/Karachi', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}*` },
     { p: /what('?s| is) today|what day|current date\b/i,
-      fn: () => `📅 Today is *${new Date().toLocaleDateString('en-US', { timeZone: config.TIMEZONE || 'Africa/Nairobi', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}*` },
+      fn: () => `📅 Today is *${new Date().toLocaleDateString('en-US', { timeZone: config.TIMEZONE || 'Asia/Karachi', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}*` },
     { p: /are you (a bot|ai|robot|human|real)\??/i,
-      r: [`I'm an AI-powered WhatsApp bot 🤖 — not human, but I try to be as helpful as one! Created by ${BOT_IDENTITY.developer}.`] },
+      r: [`I'm an AI-powered WhatsApp bot 🤖 — not human, but I try to be as helpful as one! Created for ${BOT_IDENTITY.developer}.`] },
     { p: /(\d+)\s*[\+\-\*\/\%\^]\s*(\d+)/,
       r: null }, // handled by calc
     { p: /ok(ay)?|alright|got it|understood|cool\b/i,
@@ -270,7 +270,7 @@ const smartResponses = [
     { p: /bye|goodbye|see you|cya|ttyl|later\b/i,
       r: [`Goodbye! 👋 Come back anytime!`, `See you later! 😊 Take care!`, `Bye! 👋 I'll be here when you need me!`] },
     { p: /help\b/i,
-      r: [`Type \`silva\` (no prefix needed) to see everything I can do! Or try:\n• \`silva play <song name>\`\n• \`silva weather <city>\`\n• \`silva wiki <topic>\`\n• \`silva sticker\` (reply to a photo)`] },
+      r: [`Type \`talha\` (no prefix needed) to see everything I can do! Or try:\n• \`talha play <song name>\`\n• \`talha weather <city>\`\n• \`talha wiki <topic>\`\n• \`talha sticker\` (reply to a photo)`] },
 ];
 
 function getSmartResponse(query) {
@@ -282,30 +282,14 @@ function getSmartResponse(query) {
     return null;
 }
 
-// ── ch.at no-key integration with automatic retry ─────────────────────────────
-// ch.at documents a public GET interface: https://ch.at/?q=hello
-// It returns plain text in the form "Q: ...\nA: ..." and needs no API key.
-const CHAT_ENDPOINT = 'https://ch.at/';
-const MAX_RETRIES   = 3;
+const gemini = require('../lib/gemini');
+
+// ── ch.at + Pollinations + Gemini no-key integration via lib/gemini.js ────────
 async function callChAt(prompt) {
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            const res = await axios.get(CHAT_ENDPOINT, {
-                params: { q: String(prompt).slice(0, 5000) },
-                headers: { Accept: 'text/plain', 'User-Agent': 'SilvaMD-Bot/2.0' },
-                timeout: 15000,
-            });
-            const raw = typeof res.data === 'string' ? res.data : '';
-            const answer = raw.match(/(?:^|\n)A:\s*([\s\S]*)$/i)?.[1]?.trim() || raw.trim();
-            const cleaned = answer.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-            if (cleaned.length > 4) return cleaned;
-        } catch {
-            if (attempt < MAX_RETRIES) {
-                await new Promise(r => setTimeout(r, 500 * attempt)); // 500ms, 1s backoff
-            }
-        }
-    }
-    return null; // ch.at exhausted all retries
+    try {
+        return await gemini.callChAt(prompt);
+    } catch {}
+    return null;
 }
 
 // ── Offline smart responder — NEVER returns null ──────────────────────────────
@@ -335,7 +319,7 @@ function offlineSmartReply(query, pluginKeys) {
     for (const [pattern, builder] of intents) {
         if (pattern.test(q)) {
             const match = q.match(/\b[a-z]{3,}\b/g)?.filter(w => !['what','that','this','with','have','your','from','about','does','will','when','where'].includes(w));
-            return `🤖 *Silva*\n\n` + builder(match?.slice(-2).join(' ') || '');
+            return `🤖 *TALHA-MD*\n\n` + builder(match?.slice(-2).join(' ') || '');
         }
     }
 
@@ -346,38 +330,37 @@ function offlineSmartReply(query, pluginKeys) {
             `🤔 Interesting! My AI brain is having a moment. Try \`.ask ${query.slice(0, 40)}\` again in a few seconds — I'll get it.`,
             `💡 Good question! My connection is a bit slow right now. Type \`.wiki ${query.slice(0, 30)}\` for a quick answer, or retry in a moment!`,
         ];
-        return `🤖 *Silva*\n\n` + responses[Math.floor(Math.random() * responses.length)];
+        return `🤖 *TALHA-MD*\n\n` + responses[Math.floor(Math.random() * responses.length)];
     }
 
     // Generic catch-all — always acknowledges and gives direction
     const catchAll = [
         `Got your message! 👋 My AI is connecting… try again in a moment or type \`.menu\` to see what I can do.`,
-        `I'm here! 🤖 Having a brief connection blip. Retry in a few seconds — ch.at will pick it up. Or try \`.ask ${query.slice(0, 30)}\``,
-        `Silva here! 💬 My response engine is warming up. One more try should do it — or use \`.menu\` to browse all commands!`,
+        `I'm here! 🤖 Having a brief connection blip. Retry in a few seconds — AI will pick it up. Or try \`.ask ${query.slice(0, 30)}\``,
+        `TALHA-MD here! 💬 My response engine is warming up. One more try should do it — or use \`.menu\` to browse all commands!`,
     ];
-    return `🤖 *Silva*\n\n` + catchAll[Math.floor(Math.random() * catchAll.length)];
+    return `🤖 *TALHA-MD*\n\n` + catchAll[Math.floor(Math.random() * catchAll.length)];
 }
 
 // ── Main AI dispatcher ────────────────────────────────────────────────────────
-// ch.at is the no-key backbone. If it is unavailable, the caller uses the
-// existing offline smart responder so the bot still replies usefully.
 async function askFreeAI(query, jid, systemPrompt, _pluginKeys) {
     const contextPrompt = jid ? buildContextPrompt(jid, query) : query;
-    const fullPrompt    = systemPrompt
-        ? systemPrompt + '\n\nUser: ' + contextPrompt
-        : contextPrompt;
 
     // Strings that look like content but are actually API error messages
     const BAD = /^(timed?\s*out|error|sorry[,.]?\s*|undefined|null|false|bad\s*request|unauthorized|forbidden|rate.?limit)/i;
 
     const validate = (raw) => {
         const s = raw ? String(raw).trim() : '';
-        if (s.length > 4 && !BAD.test(s)) return s;
+        if (s.length > 4 && !BAD.test(s) && !/<!DOCTYPE|<html/i.test(s)) return s;
         return null;
     };
 
-    const result = await callChAt(fullPrompt);
-    return validate(result);
+    try {
+        const res = await gemini.ask(contextPrompt, systemPrompt || undefined);
+        const clean = validate(res);
+        if (clean) return clean;
+    } catch {}
+    return null;
 }
 
 const agentActions = {
@@ -907,12 +890,14 @@ module.exports = {
         }
 
         else if (agentActions.time.test(query)) {
+            const tz = config.TIMEZONE || 'Asia/Karachi';
             const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { timeZone: 'Africa/Nairobi', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-            response = `🕐 *Current Time*\n\n${timeStr} (EAT - Africa/Nairobi)`;
+            const timeStr = now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            response = `🕐 *Current Time*\n\n${timeStr} (${tz})`;
         } else if (agentActions.date.test(query)) {
+            const tz = config.TIMEZONE || 'Asia/Karachi';
             const now = new Date();
-            const dateStr = now.toLocaleDateString('en-US', { timeZone: 'Africa/Nairobi', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const dateStr = now.toLocaleDateString('en-US', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             response = `📅 *Today's Date*\n\n${dateStr}`;
         } else if (agentActions.calc.test(query)) {
             try {
@@ -950,18 +935,27 @@ module.exports = {
                 response = `🧠 *Fun Fact*\n\n${facts[Math.floor(Math.random() * facts.length)]}`;
             }
         } else if (agentActions.quote.test(query)) {
+            let quoteText = null, quoteAuthor = null;
             try {
-                const res = await axios.get('https://api.quotable.io/random', { timeout: 5000 });
-                response = `💫 *Quote*\n\n_"${res.data.content}"_\n\n— *${res.data.author}*`;
-            } catch {
+                const res = await axios.get('https://dummyjson.com/quotes/random', { timeout: 6000 });
+                if (res.data?.quote) { quoteText = res.data.quote; quoteAuthor = res.data.author; }
+            } catch {}
+            if (!quoteText) {
+                try {
+                    const res = await axios.get('https://zenquotes.io/api/random', { timeout: 6000 });
+                    if (Array.isArray(res.data) && res.data[0]?.q) { quoteText = res.data[0].q; quoteAuthor = res.data[0].a; }
+                } catch {}
+            }
+            if (!quoteText) {
                 const quotes = [
                     { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
                     { text: "In the middle of every difficulty lies opportunity.", author: "Albert Einstein" },
                     { text: "Be yourself; everyone else is already taken.", author: "Oscar Wilde" },
                 ];
                 const q = quotes[Math.floor(Math.random() * quotes.length)];
-                response = `💫 *Quote*\n\n_"${q.text}"_\n\n— *${q.author}*`;
+                quoteText = q.text; quoteAuthor = q.author;
             }
+            response = `💫 *Quote*\n\n_"${quoteText}"_\n\n— *${quoteAuthor}*`;
         } else if (agentActions.flip.test(query)) {
             response = `🪙 *Coin Flip*\n\nResult: *${Math.random() < 0.5 ? 'Heads 🪙' : 'Tails 🪙'}*`;
         } else if (agentActions.roll.test(query)) {
@@ -1008,10 +1002,13 @@ module.exports = {
             }
         } else if (agentActions.news.test(query)) {
             try {
-                const res = await axios.get('https://saurav.tech/NewsAPI/top-headlines/category/technology/us.json', { timeout: 8000 });
-                const articles = res.data?.articles?.slice(0, 5) || [];
-                if (articles.length) {
-                    const newsText = articles.map((a, i) => `*${i + 1}.* ${a.title}\n   _${a.source?.name || 'Unknown'}_`).join('\n\n');
+                const res = await axios.get(
+                    `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent('https://feeds.bbci.co.uk/news/technology/rss.xml')}&count=5`,
+                    { timeout: 9000 }
+                );
+                const items = res.data?.items?.slice(0, 5) || [];
+                if (items.length) {
+                    const newsText = items.map((a, i) => `*${i + 1}.* ${a.title}\n   _BBC Tech_`).join('\n\n');
                     response = `📰 *Latest Tech News*\n\n${newsText}`;
                 } else {
                     response = '📰 No news available right now.';
@@ -1020,7 +1017,8 @@ module.exports = {
                 response = '📰 News service temporarily unavailable.';
             }
         } else if (agentActions.weather.test(query)) {
-            const city = query.replace(/weather|temperature|forecast|climate|in|at|for/gi, '').trim() || 'Nairobi';
+            const config = require('../config');
+            const city = query.replace(/weather|temperature|forecast|climate|in|at|for/gi, '').trim() || config.DEFAULT_CITY || 'Lahore';
             try {
                 const res = await axios.get(`https://wttr.in/${encodeURIComponent(city)}?format=j1`, { timeout: 8000 });
                 const cur = res.data?.current_condition?.[0];
@@ -1043,7 +1041,7 @@ module.exports = {
         } else if (agentActions.help.test(query)) {
             const pm = pluginMap();
             response =
-                `🤖 *Silva — Full Capabilities*\n\n` +
+                `🤖 *TALHA-MD — Full Capabilities*\n\n` +
                 `📋 *Run Commands* (${pm.size} available)\n` +
                 `• "run menu" • "do alive" • "use sticker"\n` +
                 `• "run <any command name>"\n\n` +
@@ -1358,7 +1356,7 @@ module.exports = {
                 .replace(/\b(generate|create|make|draw|paint|design|sketch|imagine)\s+(an?\s+)?(ai\s+)?(image|photo|picture|art|artwork|illustration|wallpaper|thumbnail)\b/gi, '')
                 .replace(/\bimagine\b/gi, '')
                 .trim();
-            if (!prompt) return reply(`🎨 What image should I generate?\n\nExample: _silva generate an image of a lion wearing a gold crown in a forest_`);
+            if (!prompt) return reply(`🎨 What image should I generate?\n\nExample: _talha generate an image of a lion wearing a gold crown in a forest_`);
             await safeSend({ text: `🎨 _Generating: "${prompt}"..._` }, { quoted: message });
             if (plugin) {
                 try { await plugin.run(sock, message, prompt.split(/\s+/), ctx); }
@@ -1368,8 +1366,13 @@ module.exports = {
                     const seed = Math.floor(Math.random() * 999999);
                     const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
                     const res = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 60000 });
+                    const ctype = String(res.headers?.['content-type'] || '').toLowerCase();
+                    const buf = Buffer.from(res.data || []);
+                    if (!ctype.startsWith('image/') || buf.length < 2048 || /^<(?:!doctype|html)/i.test(buf.slice(0, 64).toString('utf8'))) {
+                        throw new Error('Image provider returned invalid payload');
+                    }
                     await sock.sendMessage(jid, {
-                        image: Buffer.from(res.data),
+                        image: buf,
                         caption: `🎨 *AI Image*\n\n📝 ${prompt}`,
                     }, { quoted: message });
                 } catch (e) { reply(`❌ Image generation failed: ${e.message}`); }
@@ -1636,33 +1639,6 @@ module.exports = {
                     `Format rules: Use *bold* for key info. Max 200 words. Never say you cannot run commands.`;
 
                 let aiReply = await askFreeAI(query, jid, systemPrompt);
-
-                // Gemini secondary fallback (only if keyed)
-                if (!aiReply) {
-                    try {
-                        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || '';
-                        if (apiKey) {
-                            const { GoogleGenerativeAI } = require('@google/generative-ai');
-                            const genAI = new GoogleGenerativeAI(apiKey);
-                            const model = genAI.getGenerativeModel({
-                                model: 'gemini-1.5-flash',
-                                generationConfig: { temperature: 0.85, maxOutputTokens: 800 },
-                            });
-                            const mem = getMemory(jid).slice(-6);
-                            const geminiHistory = [
-                                { role: 'user',  parts: [{ text: systemPrompt }] },
-                                { role: 'model', parts: [{ text: `Got it! I'm TALHA-MD, ready to help. 🤖` }] },
-                                ...mem.slice(0, -1).map(m => ({
-                                    role: m.role === 'user' ? 'user' : 'model',
-                                    parts: [{ text: m.text }],
-                                })),
-                            ];
-                            const chat = model.startChat({ history: geminiHistory });
-                            const result = await chat.sendMessage(query);
-                            aiReply = result.response.text();
-                        }
-                    } catch { /* Gemini unavailable */ }
-                }
 
                 // ── GUARANTEED RESPONSE — never silent ──────────────────────────────────
                 // offlineSmartReply always returns a useful string, so response is always set.

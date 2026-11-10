@@ -1,5 +1,6 @@
 'use strict';
 const axios = require('axios');
+const gemini = require('../lib/gemini');
 
 const SIGNS = ['aries','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
 const EMOJIS = { aries:'♈',taurus:'♉',gemini:'♊',cancer:'♋',leo:'♌',virgo:'♍',libra:'♎',scorpio:'♏',sagittarius:'♐',capricorn:'♑',aquarius:'♒',pisces:'♓' };
@@ -10,8 +11,8 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, groupId, contextInfo }) => {
-        const chatId = groupId || sender;
+    run: async (sock, message, args, { jid, sender, groupId, contextInfo }) => {
+        const chatId = jid || groupId || sender;
         const sign   = (args[0] || '').toLowerCase();
         if (!sign || !SIGNS.includes(sign)) {
             return sock.sendMessage(chatId, {
@@ -20,13 +21,24 @@ module.exports = {
             }, { quoted: message });
         }
         try {
-            const { data } = await axios.get(
-                `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${sign}&day=TODAY`,
-                { timeout: 10000 }
-            );
-            const h    = data?.data;
-            const date = h?.date || new Date().toDateString();
-            const text = h?.horoscope_data || 'No horoscope available today.';
+            let date = new Date().toDateString();
+            let text = '';
+            try {
+                const { data } = await axios.get(
+                    `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${sign}&day=TODAY`,
+                    { timeout: 10000 }
+                );
+                const h = data?.data;
+                date = h?.date || date;
+                text = h?.horoscope || h?.horoscope_data || '';
+            } catch {}
+
+            if (!text) {
+                text = await gemini.ask(
+                    `Write a concise, uplifting 3-sentence daily horoscope for ${sign} for ${date}. Keep it practical and warm.`
+                );
+            }
+
             await sock.sendMessage(chatId, {
                 text: `${EMOJIS[sign]} *${sign.charAt(0).toUpperCase() + sign.slice(1)} Daily Horoscope*\n📅 ${date}\n\n${text}\n\n_Powered by TALHA MD_`,
                 contextInfo

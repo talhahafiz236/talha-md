@@ -56,7 +56,7 @@ function safeExpression(expression) {
 }
 
 module.exports = {
-    commands: ['find', 'searchcmd', 'health', 'uptime2', 'sysinfo', 'uuid', 'timestamp', 'calcx', 'jsonformat', 'textstats', 'choose'],
+    commands: ['find', 'searchcmd', 'health', 'uptime2', 'sysinfo', 'uuid', 'calcx', 'textstats', 'choose'],
     description: 'Advanced dependency-free utilities and command discovery tools',
     usage: '.find <keyword> | .health | .uptime2 | .sysinfo | .uuid | .timestamp [unix] | .calcx <expression> | .jsonformat <json> | .textstats <text> | .choose <a> | <b> ...',
     permission: 'public',

@@ -53,10 +53,10 @@ module.exports = {
                 ? audioResult.buffer 
                 : { url: audioResult.url };
 
-            // 1. Send Playable Voice Audio
+            // 1. Send Playable Audio
             await sock.sendMessage(chatTarget, {
                 audio:    audioPayload,
-                mimetype: 'audio/mp4',
+                mimetype: audioResult.mimetype || 'audio/mpeg',
                 ptt:      false,
                 contextInfo
             }, { quoted: message });

@@ -7,13 +7,13 @@ function loadPairs() { try { return JSON.parse(fs.readFileSync(pairsFile, 'utf8'
 function savePairs(d) { fs.mkdirSync(path.dirname(pairsFile), { recursive: true }); fs.writeFileSync(pairsFile, JSON.stringify(d, null, 2)); }
 
 module.exports = {
-    commands:    ['marry', 'divorce', 'ship'],
+    commands:    ['marry', 'divorce', 'pairup'],
     description: 'Marry or ship two users in a group',
     permission:  'public',
     group:       true,
     private:     false,
-    run: async (sock, message, args, { from, jid, prefix, contextInfo, mentionedJid }) => {
-        const cmd   = message.body?.split(' ')[0]?.replace(prefix, '').toLowerCase();
+    run: async (sock, message, args, { from, jid, prefix, contextInfo, mentionedJid, command }) => {
+        const cmd   = (command || message.body?.split(' ')[0]?.replace(prefix, '') || '').toLowerCase();
         const mentions = mentionedJid?.length
             ? mentionedJid
             : (message.message?.extendedTextMessage?.contextInfo?.mentionedJid || []);
@@ -31,7 +31,7 @@ module.exports = {
         const p1 = mentions[0] || from;
         const p2 = mentions[1];
         if (!p2) {
-            return sock.sendMessage(jid, { text: '💕 Mention two people to pair them!\nExample: .pair @person1 @person2', contextInfo }, { quoted: message });
+            return sock.sendMessage(jid, { text: '💕 Mention two people to pair them!\nExample: .marry @person1 @person2', contextInfo }, { quoted: message });
         }
         if (!pairs[chatKey]) pairs[chatKey] = {};
         const alreadyPaired = Object.keys(pairs[chatKey]).find(k => k.includes(p1) || k.includes(p2));

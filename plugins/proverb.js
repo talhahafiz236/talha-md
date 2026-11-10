@@ -119,21 +119,7 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo } = ctx;
-
-        let pick = null;
-
-        try {
-            const res = await axios.get('https://api.sampleapis.com/proverbs/proverbs', { timeout: 6000 });
-            const list = res.data;
-            if (Array.isArray(list) && list.length) {
-                const item = list[Math.floor(Math.random() * list.length)];
-                if (item?.proverb) pick = { text: item.proverb, origin: item.tags?.[0] || 'Traditional' };
-            }
-        } catch {}
-
-        if (!pick) {
-            pick = PROVERBS[Math.floor(Math.random() * PROVERBS.length)];
-        }
+        const pick = PROVERBS[Math.floor(Math.random() * PROVERBS.length)];
 
         const msg =
             `📜 *Proverb*\n\n` +

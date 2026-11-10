@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['flip', 'coin', 'dice', 'roll'],
+    commands:    ['flip', 'dice', 'roll'],
     description: 'Flip a coin or roll dice',
     usage:       '.flip  •  .dice  •  .dice 6  •  .roll 2d6',
     permission:  'public',

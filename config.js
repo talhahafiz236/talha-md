@@ -54,4 +54,5 @@ module.exports = {
     AGENT_MAX_STEPS:       parseInt(process.env.AGENT_MAX_STEPS || '5', 10),
     GEMINI_API_KEY:        process.env.GEMINI_API_KEY || '',
     DATABASE_URL:          process.env.DATABASE_URL || '',
+    MIN_RESPONSE_DELAY_MS: Math.max(1000, parseInt(process.env.MIN_RESPONSE_DELAY_MS || '1200', 10) || 1200),
 };

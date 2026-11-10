@@ -1,96 +1,66 @@
 'use strict';
 
-const axios = require('axios');
 const { fmt } = require('../lib/theme');
-
-const SESSION_SERVER = 'https://session.silvatech.co.ke';
-
-async function fetchPairCode(phoneNumber) {
-    const clean = String(phoneNumber).replace(/\D/g, '');
-    if (clean.length < 7) throw new Error('Invalid phone number');
-    const res = await axios.get(`${SESSION_SERVER}/code`, {
-        params:  { number: clean },
-        timeout: 15000,
-        headers: { 'User-Agent': 'SilvaMD-Bot/2.0' }
-    });
-    const code = res.data?.code || res.data?.pairCode || res.data?.pair_code;
-    if (!code) throw new Error('No code returned from server');
-    return { code, number: clean };
-}
+const { startSubBot } = require('../lib/subbot');
+const { resolvePhoneJid } = require('../lib/phone-utils');
 
 module.exports = {
     commands:    ['getcode', 'sessioncode', 'connectbot'],
-    description: 'Fetch a WhatsApp pair code to connect your bot',
+    description: 'Generate a WhatsApp pair code directly via TALHA-MD sub-bot engine',
     usage:       '.getcode 923XXXXXXXXX',
     permission:  'public',
     group:       true,
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { sender, jid, contextInfo, reply } = ctx;
-
-        // Number can come from args or be inferred from sender
+        const { sender, jid, contextInfo, reply, prefix } = ctx;
+        const pfx = prefix || '.';
         let rawNumber = args.join('').replace(/\D/g, '');
 
-        // If no number given, show usage
-        if (!rawNumber) {
+        if (!rawNumber && jid && !jid.endsWith('@g.us')) {
+            let realJid = sender;
+            if (sender.endsWith('@lid')) {
+                const resolved = resolvePhoneJid(sender);
+                if (resolved) realJid = resolved;
+            }
+            if (realJid.endsWith('@s.whatsapp.net')) {
+                rawNumber = realJid.split('@')[0].split(':')[0].replace(/\D/g, '');
+            }
+        }
+
+        if (!rawNumber || rawNumber.length < 10) {
+            const publicUrl = process.env.PUBLIC_URL || 'https://talha-md.onrender.com';
             return reply(fmt(
                 `🔗 *Get WhatsApp Pair Code*\n\n` +
-                `Enter your phone number (with country code) to get a pair code.\n\n` +
+                `Enter your phone number (with country code) to get an 8-digit pairing code directly:\n\n` +
                 `*Usage:*\n` +
-                `• \`.getcode 923XXXXXXXXX\`\n` +
-                `• \`.getcode +92 342 6767199\`\n\n` +
-                `*How to use the code:*\n` +
-                `1️⃣ Open WhatsApp → Linked Devices\n` +
-                `2️⃣ Tap *Link with phone number*\n` +
-                `3️⃣ Enter the 8-character code shown\n\n` +
-                `_Codes expire in 60 seconds — enter it quickly!_`
+                `• \`${pfx}getcode 923XXXXXXXXX\`\n` +
+                `• \`${pfx}pair 923XXXXXXXXX\`\n` +
+                `• Or open ${publicUrl}/qr\n\n` +
+                `_Codes expire in ~60 seconds — enter promptly in WhatsApp → Linked Devices._`
             ));
         }
 
-        await reply(fmt(`⏳ Fetching pair code for +${rawNumber}…`));
+        await reply(fmt(`⏳ Generating pair code for +${rawNumber}…\n_Please wait 5–10 seconds…_`));
 
         try {
-            const { code, number } = await fetchPairCode(rawNumber);
+            startSubBot({
+                number:       rawNumber,
+                requestorJid: sender,
+                requestorNum: rawNumber,
+                mainSock:     sock,
+            }).catch(e => {
+                console.error(`[GetCode] startSubBot error for +${rawNumber}: ${e.message}`);
+            });
 
-            // Format code as XXXX-XXXX for readability
-            const formatted = code.length === 8
-                ? `${code.slice(0, 4)}-${code.slice(4)}`
-                : code;
-
-            const text = fmt(
-                `🔗 *WhatsApp Pair Code*\n\n` +
-                `📞 *Number:* +${number}\n` +
-                `🔑 *Pair Code:*\n\n` +
-                `┌──────────────┐\n` +
-                `│  \`${formatted}\`  │\n` +
-                `└──────────────┘\n\n` +
-                `*How to link:*\n` +
-                `1️⃣ Open WhatsApp → *Linked Devices*\n` +
-                `2️⃣ Tap *Link with phone number*\n` +
-                `3️⃣ Enter the code above\n\n` +
-                `⚠️ _Code expires in ~60 seconds. Enter it immediately!_\n\n` +
-                `🌐 *Session server:* ${SESSION_SERVER}\n` +
-                `_Powered by TALHA MD_`
-            );
-
-            // Send to DM for privacy (not in group)
             if (jid?.endsWith('@g.us')) {
-                await sock.sendMessage(sender, { text: text, contextInfo }, { quoted: message });
-                await new Promise(r => setTimeout(r, 400));
-                await sock.sendMessage(sender, { text: formatted });
-                await reply(fmt(`✅ Pair code sent to your DM — check it there.`));
-            } else {
-                await sock.sendMessage(jid, { text: text, contextInfo }, { quoted: message });
-                await new Promise(r => setTimeout(r, 400));
-                await sock.sendMessage(jid, { text: formatted });
+                await sock.sendMessage(jid, {
+                    text: fmt(`✅ Pairing code for +${rawNumber} will be delivered directly to your DM!`),
+                    contextInfo,
+                }, { quoted: message });
             }
-
         } catch (err) {
-            const msg = err.response?.status === 429
-                ? '⚠️ Rate limited — wait a moment then try again.'
-                : `❌ Failed to fetch pair code: ${err.message}\n\nTry visiting ${SESSION_SERVER} directly.`;
-            reply(fmt(msg));
+            reply(fmt(`❌ Failed to request pair code: ${err.message}`));
         }
     }
 };

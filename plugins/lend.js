@@ -2,9 +2,8 @@
 
 const fs    = require('fs');
 const path  = require('path');
-const axios = require('axios');
 const { fmt } = require('../lib/theme');
-const { startSubBot, stopSubBot, wipeSubBotSession } = require('../lib/subbot');
+const { startSubBot, stopSubBot } = require('../lib/subbot');
 
 const SETTINGS_PATH = path.join(__dirname, '../data/lend-settings.json');
 
@@ -26,8 +25,7 @@ function formatDuration(ms) {
     return [d && `${d}d`, h && `${h}h`].filter(Boolean).join(' ') || '<1h';
 }
 
-const SESSION_SERVER = 'https://session.silvatech.co.ke';
-const DATA_PATH      = path.join(__dirname, '../data/lends.json');
+const DATA_PATH = path.join(__dirname, '../data/lends.json');
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 function load() {
@@ -41,19 +39,6 @@ function save(data) {
         fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
         fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
     } catch { /* ignore */ }
-}
-
-// ─── Pair code fetch ──────────────────────────────────────────────────────────
-async function fetchPairCode(number) {
-    const clean = String(number).replace(/\D/g, '');
-    const res = await axios.get(`${SESSION_SERVER}/code`, {
-        params:  { number: clean },
-        timeout: 15000,
-        headers: { 'User-Agent': 'SilvaMD-Bot/2.0' }
-    });
-    const code = res.data?.code || res.data?.pairCode || res.data?.pair_code;
-    if (!code) throw new Error('No code returned');
-    return code;
 }
 
 // ─── Plugin ───────────────────────────────────────────────────────────────────

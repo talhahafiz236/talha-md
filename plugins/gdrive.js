@@ -7,10 +7,11 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { jid, groupId, sender, contextInfo }) => {
+        const chatId = jid || groupId || sender;
         const url = args[0];
         if (!url || !url.includes('drive.google.com')) {
-            return sock.sendMessage(sender, {
+            return sock.sendMessage(chatId, {
                 text: '❌ Please provide a Google Drive URL.\nExample: .gdrive https://drive.google.com/file/d/FILE_ID/view',
                 contextInfo
             }, { quoted: message });
@@ -24,12 +25,12 @@ module.exports = {
             const { headers } = await axios.head(dlLink, { timeout: 10000, maxRedirects: 3 });
             const fileName = (headers['content-disposition'] || '').match(/filename="?([^"]+)"?/)?.[1] || fileId;
             const size     = headers['content-length'] ? `${(parseInt(headers['content-length']) / 1024 / 1024).toFixed(2)} MB` : 'Unknown';
-            await sock.sendMessage(sender, {
+            await sock.sendMessage(chatId, {
                 text: `📁 *Google Drive File*\n\n📄 *Name:* ${fileName}\n📦 *Size:* ${size}\n🔗 *Download:* ${confirm}\n\n_Powered by TALHA MD_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {
-            await sock.sendMessage(sender, { text: `❌ Google Drive failed: ${e.message}`, contextInfo }, { quoted: message });
+            await sock.sendMessage(chatId, { text: `❌ Google Drive failed: ${e.message}`, contextInfo }, { quoted: message });
         }
     }
 };

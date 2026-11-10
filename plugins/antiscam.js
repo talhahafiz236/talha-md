@@ -192,15 +192,20 @@ module.exports = {
     },
 
     // ── Message event hook ────────────────────────────────────────────────────
-    onMessage: async (sock, message, ctx) => {
-        const { groupId, sender, isAdmin, isOwner, isBotAdmin } = ctx;
+    onMessage: async (sock, message, textOrCtx, maybeCtx) => {
+        const ctx = (textOrCtx && typeof textOrCtx === 'object') ? textOrCtx : (maybeCtx || {});
+        const groupId = ctx.groupId || (message?.key?.remoteJid?.endsWith('@g.us') ? message.key.remoteJid : null);
         if (!groupId) return;
+
+        const offender = message?.key?.participant || ctx.from || ctx.sender || groupId;
+        const { isAdmin, isOwner, isBotAdmin } = ctx;
 
         const cfg = getGroupCfg(groupId);
         if (!cfg.enabled) return;
         if (isAdmin || isOwner) return; // exempt admins
 
         const text = (
+            (typeof textOrCtx === 'string' && textOrCtx) ||
             message.message?.conversation ||
             message.message?.extendedTextMessage?.text ||
             message.message?.imageMessage?.caption ||
@@ -214,7 +219,7 @@ module.exports = {
         const hit = detectScam(text);
         if (!hit) return;
 
-        const senderNum = sender.split('@')[0];
+        const senderNum = offender.split('@')[0];
         const action    = cfg.action;
 
         // Delete
@@ -234,7 +239,7 @@ module.exports = {
                         `⚠️ Sharing fraudulent content may result in removal.\n` +
                         `_If this was a mistake, admins can review._`
                     ),
-                    mentions: [sender]
+                    mentions: [offender]
                 });
             } catch { /* ignore */ }
         }
@@ -242,13 +247,13 @@ module.exports = {
         // Kick
         if (action === 'kick' && isBotAdmin) {
             try {
-                await sock.groupParticipantsUpdate(groupId, [sender], 'remove');
+                await sock.groupParticipantsUpdate(groupId, [offender], 'remove');
                 await sock.sendMessage(groupId, {
                     text: fmt(
                         `🚫 @${senderNum} was *removed* for posting suspected *${hit}* content.\n\n` +
                         `_Protect your group — report scammers to authorities._`
                     ),
-                    mentions: [sender]
+                    mentions: [offender]
                 });
             } catch { /* ignore */ }
         }

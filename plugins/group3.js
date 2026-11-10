@@ -18,13 +18,13 @@ function saveBadWords(jid, words) {
 module.exports = {
     commands: [
         'accept', 'acceptall', 'reject', 'rejectall', 'listrequests',
-        'add', 'everyone', 'gcdesc', 'gcpp', 'getgcpp', 'getlid',
-        'groupname', 'groupsettings', 'killgc', 'link', 'del',
-        'mute', 'newgroup', 'online', 'resetgroup', 'resetlink',
-        'setantilink', 'tagadmins', 'vcf', 'antigroupmention', 'antipromote',
-        'badwords', 'setantibad', 'setantigcmentionwarnlimit',
+        'add', 'gcdesc', 'gcpp', 'getgcpp', 'getlid',
+        'groupsettings', 'killgc',
+        'newgroup', 'resetgroup', 'resetlink',
+        'setantilink', 'vcf', 'antigroupmention', 'antipromote',
+        'custombadwords', 'setantibad', 'setantigcmentionwarnlimit',
         'setgroupevents', 'welcomemessage', 'goodbyemessage',
-        'disapp', 'left', 'antibadwarn', 'antilinkwarn', 'menus', 'list'
+        'disapp', 'left', 'antibadwarn', 'antilinkwarn', 'menus'
     ],
     description: 'Extended group management commands',
     permission:  'admin',
@@ -37,7 +37,7 @@ module.exports = {
 
         const rawText = (message.message?.extendedTextMessage?.text
             || message.message?.conversation || '').trim();
-        const cmd = rawText.split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const cmd = (ctx.command || rawText.split(/\s+/)[0].replace(/^\./, '')).toLowerCase();
 
         const send = (text, extra = {}) =>
             sock.sendMessage(jid, { text: fmt(text), contextInfo, ...extra }, { quoted: message });
@@ -312,7 +312,7 @@ module.exports = {
             return;
         }
 
-        if (cmd === 'badwords') {
+        if (cmd === 'custombadwords') {
             const words = loadBadWords(jid);
             if (!words.length) return send('🚫 *Bad Words Filter*\n\nNo bad words set.\n\nUse `.setantibad <word1, word2>` to add words.');
             return send(`🚫 *Bad Words (${words.length})*\n\n${words.map(w => `• ${w}`).join('\n')}`);

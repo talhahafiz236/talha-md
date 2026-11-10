@@ -7,15 +7,16 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { jid, groupId, sender, contextInfo }) => {
+        const chatId = jid || groupId || sender;
         const url = args[0];
         if (!url || !url.includes('mediafire.com')) {
-            return sock.sendMessage(sender, {
+            return sock.sendMessage(chatId, {
                 text: '❌ Please provide a valid MediaFire URL.\nExample: .mf https://www.mediafire.com/file/abc/filename/file',
                 contextInfo
             }, { quoted: message });
         }
-        await sock.sendMessage(sender, { text: '⏳ Extracting MediaFire link...', contextInfo }, { quoted: message });
+        await sock.sendMessage(chatId, { text: '⏳ Extracting MediaFire link...', contextInfo }, { quoted: message });
         try {
             const { data } = await axios.get(url, {
                 timeout: 15000,
@@ -27,12 +28,12 @@ module.exports = {
             const nameMatch = data.match(/<div class="filename">([^<]+)<\/div>/) ||
                               data.match(/class="dl-btn-label[^"]*">([^<]+)<\/span>/);
             const fileName = nameMatch ? nameMatch[1].trim() : 'file';
-            await sock.sendMessage(sender, {
+            await sock.sendMessage(chatId, {
                 text: `📁 *MediaFire Download*\n\n📄 *File:* ${fileName}\n🔗 *Link:* ${dlUrl}\n\n_Powered by TALHA MD_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {
-            await sock.sendMessage(sender, { text: `❌ MediaFire failed: ${e.message}`, contextInfo }, { quoted: message });
+            await sock.sendMessage(chatId, { text: `❌ MediaFire failed: ${e.message}`, contextInfo }, { quoted: message });
         }
     }
 };

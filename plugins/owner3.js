@@ -28,10 +28,10 @@ function isRealOwner(ctx) {
 
 module.exports = {
     commands: [
-        'block', 'unblock', 'forward', 'mygroups', 'pp', 'fullpp',
-        'setbotname', 'setmode', 'setsudo', 'delsudo', 'getsudo', 'resetsudo',
-        'setownername', 'setownernumber', 'join', 'cmd',
-        'cachedmeta', 'report', 'save', 'tostatus', 'vv2', 'update',
+        'forward', 'mygroups', 'pp', 'fullpp',
+        'setbotname', 'setsudo', 'delsudo', 'getsudo', 'resetsudo',
+        'setownername', 'setownernumber',
+        'cachedmeta', 'report', 'tostatus', 'vv2', 'update',
         'return', 'setpmpermit', 'setpackname', 'setpackauthor',
         'setbotpic', 'setbotrepo', 'setcaption', 'setchatbot', 'setchatbotmode',
         'setdmpresence', 'setfooter', 'setgcjid', 'setgcpresence',
@@ -40,7 +40,7 @@ module.exports = {
         'setautolikestatus', 'setautoreact', 'setautoread', 'setautoreadstatus',
         'setautoreplystatus', 'setautoblock', 'setautobio', 'setanticall',
         'setantidelete', 'setantiedit', 'getsetting', 'setsetting',
-        'resetsetting', 'resetallsettings', 'resetdb', 'jid'
+        'resetsetting', 'resetallsettings', 'resetdb'
     ],
     description: 'Extended owner/admin control commands',
     permission:  'owner',
@@ -49,8 +49,8 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { jid, sender, from, contextInfo, isOwner, mentionedJid, groupMetadata } = ctx;
-        const cmd  = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const cmd  = (ctx.command || (message.message?.extendedTextMessage?.text
+            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '')).toLowerCase();
         const text = args.join(' ').trim();
         const send = (t) => sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });
 

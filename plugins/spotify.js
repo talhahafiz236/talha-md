@@ -1,84 +1,109 @@
 'use strict';
 
-const axios  = require('axios');
-const playdl = require('play-dl');
+const axios = require('axios');
+const { searchYouTube, downloadAudio } = require('../lib/youtube-downloader');
 
-// nexoracle.com returns HTML (bot protection), not a usable API — removed.
-// saavn.dev / jiosaavn API mirrors are all dead (ENOTFOUND / 400).
-// Strategy: search YouTube via play-dl, download MP3 via davidcyriltech.
+async function resolveSpotifyQuery(input) {
+    const clean = String(input || '').trim();
+    const match = clean.match(/https?:\/\/open\.spotify\.com\/[^\s]+/i);
+    if (!match) return clean;
 
-const DC_BASE = 'https://apis.davidcyriltech.my.id';
+    // Official Spotify oEmbed returns "Song Title" and sometimes "by Artist" cleanly without auth
+    try {
+        const res = await axios.get('https://open.spotify.com/oembed', {
+            params: { url: match[0] },
+            headers: { 'User-Agent': 'TALHAMD-Bot/2.0' },
+            timeout: 10000,
+        });
+        const title = String(res.data?.title || '').trim();
+        if (title) return title;
+    } catch {}
+
+    // Fallback: scrape <title> from Spotify share page
+    try {
+        const page = await axios.get(match[0], {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TALHAMDBot/2.0)' },
+            timeout: 10000,
+        });
+        const rawTitle = String(page.data || '').match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || '';
+        const cleaned = rawTitle.replace(/\s*\|\s*Spotify.*$/i, '').replace(/\s*-\s*song and lyrics by\s+/i, ' - ').trim();
+        if (cleaned) return cleaned;
+    } catch {}
+
+    return clean;
+}
 
 module.exports = {
     commands:    ['spotify', 'spoti', 'spdl'],
-    description: 'Search and download a song as audio (via YouTube)',
+    description: 'Download a Spotify link or search and download any song as MP3',
+    usage:       '.spotify <song name or Spotify track URL>',
     permission:  'public',
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo }) => {
-        const query = args.join(' ').trim();
-        if (!query) {
-            return sock.sendMessage(sender, {
-                text: '🎵 Please provide a song name.\nExample: `.spotify Blinding Lights`',
+    run: async (sock, message, args, { jid, sender, contextInfo }) => {
+        const chatTarget = jid || sender;
+        const rawQuery = args.join(' ').trim();
+        if (!rawQuery) {
+            return sock.sendMessage(chatTarget, {
+                text: '🎵 Please provide a song name or Spotify link.\nExample: `.spotify Blinding Lights`',
                 contextInfo
             }, { quoted: message });
         }
 
-        const loading = await sock.sendMessage(sender, {
-            text: `⏳ _Searching for_ *${query}*_..._`,
+        const loading = await sock.sendMessage(chatTarget, {
+            text: `⏳ _Fetching track audio..._`,
             contextInfo
         }, { quoted: message }).catch(() => null);
         const deleteLoading = () => {
-            if (loading?.key) sock.sendMessage(sender, { delete: loading.key }).catch(() => {});
+            if (loading?.key) sock.sendMessage(chatTarget, { delete: loading.key }).catch(() => {});
         };
 
         try {
-            // 1. Search YouTube for the song (play-dl — no external API)
-            const results = await playdl.search(query + ' audio', {
-                source: { youtube: 'video' },
-                limit:  1
-            });
-            const first = results?.[0];
-            if (!first?.url) throw new Error(`No results found for: ${query}`);
-
-            const title    = first.title || query;
-            const channel  = first.channel?.name || 'Unknown Artist';
-            const duration = first.durationRaw || 'N/A';
-            const thumb    = first.thumbnails?.[first.thumbnails.length - 1]?.url || '';
-
-            // 2. Download MP3 via davidcyriltech (confirmed live 2026-06)
-            const dlRes = await axios.get(
-                `${DC_BASE}/download/ytmp3?url=${encodeURIComponent(first.url)}`,
-                { timeout: 35000 }
-            );
-            const audioUrl = dlRes.data?.result?.download_url || dlRes.data?.result?.downloadUrl
-                           || dlRes.data?.result?.url || dlRes.data?.url || dlRes.data?.link;
-            if (!audioUrl) throw new Error('Could not retrieve download link');
+            const resolvedQuery = await resolveSpotifyQuery(rawQuery);
+            const track = await searchYouTube(`${resolvedQuery} audio`);
+            const audioResult = await downloadAudio(track.url);
+            const audioPayload = audioResult.type === 'buffer'
+                ? audioResult.buffer
+                : { url: audioResult.url };
 
             await deleteLoading();
 
-            // 3. Send audio
-            await sock.sendMessage(sender, {
-                audio:    { url: audioUrl },
-                mimetype: 'audio/mpeg',
+            const title = track.title || resolvedQuery;
+            const safeName = title.replace(/[^\w\s-]/g, '').trim().slice(0, 50) || 'spotify_track';
+            const caption = `🎵 *${title}*\n👤 ${track.author || 'Spotify / YouTube'}${track.duration ? `  •  ⏱ ${track.duration}` : ''}\n_Powered by TALHA-MD_`;
+
+            if (track.thumbnail) {
+                try {
+                    await sock.sendMessage(chatTarget, {
+                        image: { url: track.thumbnail },
+                        caption,
+                        contextInfo
+                    }, { quoted: message });
+                } catch {
+                    await sock.sendMessage(chatTarget, { text: caption, contextInfo }, { quoted: message }).catch(() => {});
+                }
+            } else {
+                await sock.sendMessage(chatTarget, { text: caption, contextInfo }, { quoted: message }).catch(() => {});
+            }
+
+            await sock.sendMessage(chatTarget, {
+                audio:    audioPayload,
+                mimetype: audioResult.mimetype || 'audio/mpeg',
                 ptt:      false,
                 contextInfo
             }, { quoted: message });
 
-            // 4. Send cover art + caption
-            const caption = `🎵 *${title}*\n👤 ${channel}  •  ⏱ ${duration}\n_Powered by TALHA MD_`;
-            if (thumb) {
-                await sock.sendMessage(sender, {
-                    image: { url: thumb }, caption, contextInfo
-                }, { quoted: message });
-            } else {
-                await sock.sendMessage(sender, { text: caption, contextInfo }, { quoted: message });
-            }
+            await sock.sendMessage(chatTarget, {
+                document: audioPayload,
+                mimetype: 'audio/mpeg',
+                fileName: `${safeName}.mp3`,
+                contextInfo
+            }, { quoted: message });
         } catch (e) {
             await deleteLoading();
-            await sock.sendMessage(sender, {
-                text: `❌ Song download failed: ${String(e.message).slice(0, 100)}\n\n_Try: \`.ytmp3 <youtube url>\` with a direct URL_`,
+            await sock.sendMessage(chatTarget, {
+                text: `❌ Song download failed: ${String(e.message).slice(0, 120)}`,
                 contextInfo
             }, { quoted: message });
         }

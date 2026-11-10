@@ -12,7 +12,8 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { jid, groupId, sender, contextInfo }) => {
+        const chatId = jid || groupId || sender;
         const msg = message.message;
         const quotedText = msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation
                         || msg?.extendedTextMessage?.contextInfo?.quotedMessage?.extendedTextMessage?.text
@@ -20,23 +21,24 @@ module.exports = {
         const text = args.join(' ').trim() || quotedText;
 
         if (!text) {
-            return sock.sendMessage(sender, {
+            return sock.sendMessage(chatId, {
                 text: '📋 Please provide text to paste.\nExample: `.paste Hello World`\n_Or reply to a message with `.paste`_',
                 contextInfo
             }, { quoted: message });
         }
 
-        await sock.sendMessage(sender, { text: '⏳ Uploading paste...', contextInfo }, { quoted: message });
+        await sock.sendMessage(chatId, { text: '⏳ Uploading paste...', contextInfo }, { quoted: message });
 
-        // Strategy 1: paste.rs — simple PUT, returns URL in body
+        // Strategy 1: paste.rs — simple POST, returns URL in body
         try {
-            const res = await axios.post('https://paste.rs/', text, {
-                headers: { 'Content-Type': 'text/plain' },
+            const payload = text.endsWith('\n') ? text : text + '\n';
+            const res = await axios.post('https://paste.rs/', payload, {
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' },
                 timeout: 12000,
             });
             const link = String(res.data).trim();
             if (link.startsWith('https://')) {
-                return sock.sendMessage(sender, {
+                return sock.sendMessage(chatId, {
                     text: `📋 *Paste Uploaded!*\n\n🔗 ${link}\n\n_paste.rs • No expiry_`,
                     contextInfo
                 }, { quoted: message });
@@ -57,7 +59,7 @@ module.exports = {
             });
             const link = String(res.data).trim().replace(/["']/g, '');
             if (link.startsWith('http')) {
-                return sock.sendMessage(sender, {
+                return sock.sendMessage(chatId, {
                     text: `📋 *Paste Uploaded!*\n\n🔗 ${link}\n\n_dpaste.org • Expires in 30 days_`,
                     contextInfo
                 }, { quoted: message });
@@ -79,14 +81,14 @@ module.exports = {
             });
             const link = String(res.data).trim();
             if (link.startsWith('https://')) {
-                return sock.sendMessage(sender, {
+                return sock.sendMessage(chatId, {
                     text: `📋 *Paste Uploaded!*\n\n🔗 ${link}\n\n_catbox.moe • No expiry_`,
                     contextInfo
                 }, { quoted: message });
             }
         } catch {}
 
-        await sock.sendMessage(sender, {
+        await sock.sendMessage(chatId, {
             text: `❌ Paste upload failed.\n\nYou can paste text manually at:\n🔗 https://paste.rs\n🔗 https://dpaste.org`,
             contextInfo
         }, { quoted: message });

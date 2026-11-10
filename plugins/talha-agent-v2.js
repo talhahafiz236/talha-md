@@ -4,7 +4,7 @@ const { runAgent, clearHistory, getHistory } = require('../lib/agent-v2');
 const universalDownloader = require('./universal-downloader');
 const setPrefixPlugin = require('./setprefix');
 
-const SOCIAL_URL = /https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com)\//i;
+const SOCIAL_URL = /https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be|tiktok\.com|vt\.tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com|pinterest\.com|pin\.it|soundcloud\.com|threads\.net|capcut\.com)\//i;
 const ACTION_INTENT = /\b(weather|forecast|temperature|search|google|look up|wiki|wikipedia|translate|definition|define|lyrics?|play|music|song|spotify|tiktok|instagram|insta|facebook|youtube|ytmp[34]|twitter|tweet|pinterest|sticker|qr code|qrcode|remind|reminder|note|poll|schedule|group|kick|remove|promote|demote|mute|unmute|lock|unlock|tag all|download|save this|send this)\b/i;
 
 function pluginMap() {

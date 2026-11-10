@@ -15,7 +15,7 @@ function rollEmoji(n) { return ['','1️⃣','2️⃣','3️⃣','4️⃣','5️
 
 module.exports = {
     commands: [
-        'roll', 'games',
+        'games',
         'diceai', 'diceend', 'dicejoin',
         'tttai', 'tttboard', 'tttend', 'tttjoin',
         'w', 'wcg', 'wcgai', 'wcgbegin', 'wcgend', 'wcgjoin', 'wcgscores'

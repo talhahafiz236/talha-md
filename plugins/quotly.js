@@ -32,60 +32,33 @@ module.exports = {
         await safeSend({ text: `🎨 _Creating your quote image..._` }, { quoted: message });
 
         try {
-            // Try quotly API first
-            const res = await axios.post(
-                'https://quotly.ryzl.xyz/api/generate',
-                {
-                    type: 'quote',
-                    format: 'png',
-                    backgroundColor: '#1a1a2e',
-                    messages: [{
-                        entities: [],
-                        media: { type: 'none' },
-                        replyMessage: {},
-                        avatar: true,
-                        from: {
-                            id: 0,
-                            name: `+${senderNum}`,
-                            photo: { url: `https://ui-avatars.com/api/?name=${senderNum}&background=random&color=fff&size=128` },
-                        },
-                        text: quotedText,
-                        type: 'string',
-                    }],
-                },
-                { timeout: 15000, responseType: 'arraybuffer' }
-            );
+            const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+                `beautiful minimalist quote card, dark background, elegant white typography: "${quotedText.slice(0, 120)}", clean modern design`
+            )}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random() * 999999)}`;
 
+            const imgRes = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 30000 });
+            const ctype = String(imgRes.headers?.['content-type'] || '').toLowerCase();
+            const buf = Buffer.from(imgRes.data || []);
+            if (!ctype.startsWith('image/') || buf.length < 2048 || /^<(?:!doctype|html)/i.test(buf.slice(0, 64).toString('utf8'))) {
+                throw new Error('Invalid image response');
+            }
             await sock.sendMessage(jid, {
-                sticker: Buffer.from(res.data),
+                image: buf,
+                caption: `💬 _"${quotedText}"_\n\n— *+${senderNum}*`,
             }, { quoted: message });
 
         } catch {
-            // Fallback: send as a nicely formatted text quote card
-            try {
-                const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-                    `beautiful minimalist quote card, dark background, elegant white text: "${quotedText.slice(0, 120)}", professional, clean, modern design`
-                )}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random() * 999999)}`;
-
-                const imgRes = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 30000 });
-                await sock.sendMessage(jid, {
-                    image: Buffer.from(imgRes.data),
-                    caption: `💬 _"${quotedText}"\n\n— +${senderNum}_`,
-                }, { quoted: message });
-
-            } catch {
-                // Plain text fallback
-                await safeSend({
-                    text:
-                        `┌─────────────────────\n` +
-                        `│ 💬 *Quote*\n` +
-                        `│\n` +
-                        `│ _"${quotedText}"_\n` +
-                        `│\n` +
-                        `│ — *+${senderNum}*\n` +
-                        `└─────────────────────`,
-                }, { quoted: message });
-            }
+            // Plain text fallback
+            await safeSend({
+                text:
+                    `┌─────────────────────\n` +
+                    `│ 💬 *Quote*\n` +
+                    `│\n` +
+                    `│ _"${quotedText}"_\n` +
+                    `│\n` +
+                    `│ — *+${senderNum}*\n` +
+                    `└─────────────────────`,
+            }, { quoted: message });
         }
     },
 };
