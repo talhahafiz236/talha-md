@@ -40,7 +40,7 @@ module.exports = {
         'setautolikestatus', 'setautoreact', 'setautoread', 'setautoreadstatus',
         'setautoreplystatus', 'setautoblock', 'setautobio', 'setanticall',
         'setantidelete', 'setantiedit', 'getsetting', 'setsetting',
-        'resetsetting', 'resetallsettings', 'resetdb'
+        'resetsetting', 'resetallsettings', 'resetdb', 'getsession', 'v2session'
     ],
     description: 'Extended owner/admin control commands',
     permission:  'owner',
@@ -445,6 +445,27 @@ module.exports = {
                 await sock.updateProfilePicture(sock.user?.id || '', buf);
                 return send('✅ Bot profile picture updated!');
             } catch { return send('❌ Failed to update bot profile picture.'); }
+        }
+
+        if (cmd === 'getsession' || cmd === 'v2session') {
+            if (!isRealOwner(ctx)) return send('⛔ Only the primary bot owner can export the session bundle.');
+            try {
+                const { encodeSessionBundle } = require('../lib/session-bundle');
+                const sessionDir = path.join(__dirname, '../session');
+                const sid = encodeSessionBundle(sessionDir, { maxPreKeys: 60, maxSessions: 40, maxSenderKeys: 30 });
+                if (!sid) return send('❌ No active `creds.json` session found on disk.');
+                const ownerNum = ((process.env.OWNER_NUMBER || '').trim()
+                    || (typeof config.OWNER_NUMBER === 'string' ? config.OWNER_NUMBER.trim() : '')
+                    || (global.botNum || '')).replace(/\D/g, '');
+                const ownerDmJid = ownerNum ? `${ownerNum}@s.whatsapp.net` : (ctx.isGroup ? from : jid);
+                if (ctx.isGroup) {
+                    await send('🔒 Security: Bundle v2 SESSION_ID aapke personal DM mein bhej raha hoon.');
+                }
+                await sock.sendMessage(ownerDmJid, { text: sid });
+                return;
+            } catch (e) {
+                return send(`❌ Session export failed: ${e.message}`);
+            }
         }
     }
 };

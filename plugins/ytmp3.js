@@ -32,19 +32,21 @@ module.exports = {
                 ? audioResult.buffer 
                 : { url: audioResult.url };
 
-            const safeName = (track.title || 'song').replace(/[^\w\s-]/g, '').trim().slice(0, 50);
+            const safeName = (track.title || 'song').replace(/[^\w\s-]/g, '').trim().slice(0, 50) || 'song';
+            const mime = audioResult.mimetype || 'audio/mpeg';
+            const ext = mime.includes('mp4') ? 'm4a' : 'mp3';
 
             await sock.sendMessage(chatTarget, {
                 audio:    audioPayload,
-                mimetype: audioResult.mimetype || 'audio/mpeg',
+                mimetype: mime,
                 ptt:      false,
                 contextInfo
             }, { quoted: message });
 
             await sock.sendMessage(chatTarget, {
                 document: audioPayload,
-                mimetype: 'audio/mpeg',
-                fileName: `${safeName}.mp3`,
+                mimetype: mime,
+                fileName: `${safeName}.${ext}`,
                 contextInfo
             }, { quoted: message });
 

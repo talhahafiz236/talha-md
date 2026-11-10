@@ -50,32 +50,36 @@ function tryYtDlpTikTok(url) {
 }
 
 async function downloadTikTok(url) {
-    // 1. Try TikWM via POST (form-urlencoded) - fast & watermark-free
-    try {
-        const res = await axios.post(
-            'https://tikwm.com/api/',
-            qs.stringify({ url }),
-            {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                },
-                timeout: 25000
+    // 1. Try www.tikwm.com GET & POST (fast, watermark-free, cloud-friendly)
+    for (const method of ['GET', 'POST']) {
+        try {
+            const res = method === 'GET'
+                ? await axios.get('https://www.tikwm.com/api/', {
+                    params: { url },
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+                    timeout: 18000,
+                })
+                : await axios.post('https://www.tikwm.com/api/', qs.stringify({ url }), {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    },
+                    timeout: 18000,
+                });
+            const data = res.data;
+            if (data?.code === 0 && data?.data?.play) {
+                return {
+                    videoUrl: data.data.play,
+                    audioUrl: data.data.music,
+                    author:   data.data.author?.nickname || data.data.author?.unique_id || 'TikTok User',
+                    likes:    data.data.digg_count || 0,
+                    title:    data.data.title || 'TikTok Video',
+                    source:   `TikWM-${method}`
+                };
             }
-        );
-        const data = res.data;
-        if (data?.code === 0 && data?.data?.play) {
-            return {
-                videoUrl: data.data.play,
-                audioUrl: data.data.music,
-                author:   data.data.author?.nickname || data.data.author?.unique_id || 'TikTok User',
-                likes:    data.data.digg_count || 0,
-                title:    data.data.title || 'TikTok Video',
-                source:   'TikWM'
-            };
+        } catch (e) {
+            console.warn(`[TikTok] TikWM ${method} error: ${e.message}`);
         }
-    } catch (e) {
-        console.warn(`[TikTok] TikWM POST error: ${e.message}`);
     }
 
     // 2. Try rahad-all-downloader-v2

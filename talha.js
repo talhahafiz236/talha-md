@@ -201,18 +201,29 @@ async function loadSession() {
 // ✅ Message Cache for Anti-Delete & Signal Retry getMessage
 const messageCache = new Map();
 
+function cacheSentKeys(remoteJid, id) {
+    const keys = [];
+    if (remoteJid && id) keys.push(`${remoteJid}-${id}`);
+    const norm = typeof remoteJid === 'string' ? remoteJid.replace(/:[^@]+@/, '@') : '';
+    if (norm && id && `${norm}-${id}` !== `${remoteJid}-${id}`) keys.push(`${norm}-${id}`);
+    if (id) keys.push(`id-${id}`);
+    return keys;
+}
+
 global.cacheSentMessage = (sentMsg) => {
     try {
-        if (!sentMsg?.key?.id || !sentMsg?.key?.remoteJid || !sentMsg?.message) return;
-        const cacheKey = `${sentMsg.key.remoteJid}-${sentMsg.key.id}`;
-        messageCache.set(cacheKey, {
+        if (!sentMsg?.key?.id || !sentMsg?.message) return;
+        const entry = {
             message:     sentMsg.message,
             pushName:    config.BOT_NAME || 'TALHA MD',
             senderJid:   global.botJid || '',
             senderPhone: global.botNum || '',
-            chatJid:     sentMsg.key.remoteJid,
+            chatJid:     sentMsg.key.remoteJid || '',
             timestamp:   Date.now(),
-        });
+        };
+        for (const cacheKey of cacheSentKeys(sentMsg.key.remoteJid, sentMsg.key.id)) {
+            messageCache.set(cacheKey, entry);
+        }
         while (messageCache.size > 5000) {
             const oldestKey = messageCache.keys().next().value;
             if (!oldestKey) break;
@@ -547,14 +558,15 @@ async function connectToWhatsApp() {
         retryRequestDelayMs: 250,
         maxMsgRetryCount: 5,
         getMessage: async (key) => {
-            const cacheKey = `${key.remoteJid}-${key.id}`;
-            const cached = messageCache.get(cacheKey);
-            if (cached?.message) return cached.message;
+            for (const cacheKey of cacheSentKeys(key?.remoteJid, key?.id)) {
+                const cached = messageCache.get(cacheKey);
+                if (cached?.message) return cached.message;
+            }
             if (typeof sock?.__getSentMessage === 'function') {
                 const sent = sock.__getSentMessage(key);
                 if (sent) return sent;
             }
-            const stored = store.loadMessage(key.remoteJid, key.id);
+            const stored = key?.remoteJid && key?.id ? store.loadMessage(key.remoteJid, key.id) : null;
             return stored?.message || undefined;
         }
     });
@@ -851,8 +863,15 @@ async function connectToWhatsApp() {
                 backupSessionToDb(sessionDir).catch(() => {});
             }
 
-            // Update profile & send welcome
+            // Update profile & let Signal pre-keys/device-list settle before owner DM
             await updateProfileStatus(sock);
+            await new Promise(r => setTimeout(r, 2500));
+            try {
+                const ownerJidEarly = `${config.OWNER_NUMBER.replace(/\D/g, '')}@s.whatsapp.net`;
+                if (typeof sock.assertSessions === 'function') {
+                    await sock.assertSessions([ownerJidEarly], false).catch(() => {});
+                }
+            } catch {}
             await sendWelcomeMessage(sock);
 
             // ── Anti-Call handler ──────────────────────────────────────────────

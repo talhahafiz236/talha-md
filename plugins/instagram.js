@@ -41,7 +41,7 @@ async function tryOldBotYtDlp(rawInput) {
 
         args.push(targetUrl);
 
-        execFile('yt-dlp', args, { timeout: 60000 }, (err) => {
+        execFile('yt-dlp', args, { timeout: 25000 }, (err) => {
             try {
                 const files = fs.readdirSync(TEMP_DIR).filter(f => f.startsWith(fileId));
                 if (files.length > 0) {
@@ -578,15 +578,18 @@ async function tryParallelApis(url) {
 // STRATEGY 10: instagram-url-direct npm package
 // ═══════════════════════════════════════════════════════════════════════════
 async function tryNpmPackage(url) {
-    let instagramGetUrl;
-    try { instagramGetUrl = require('instagram-url-direct'); } catch (_) {
+    let mod;
+    try { mod = require('instagram-url-direct'); } catch (_) {
         throw new Error('npm pkg not installed');
     }
-    if (typeof instagramGetUrl !== 'function' && instagramGetUrl?.default) {
-        instagramGetUrl = instagramGetUrl.default;
-    }
+    const instagramGetUrl = typeof mod === 'function'
+        ? mod
+        : (typeof mod?.default === 'function' ? mod.default : mod?.instagramGetUrl);
     if (typeof instagramGetUrl !== 'function') throw new Error('npm pkg: not a function');
-    const result = await instagramGetUrl(url);
+    const result = await Promise.race([
+        instagramGetUrl(url),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('npm pkg timeout')), 12000)),
+    ]);
     if (!result || !result.url_list?.length) throw new Error('npm: no result');
     return result.url_list.filter(Boolean).map(u => ({
         url:  u,
@@ -630,21 +633,20 @@ module.exports = [
                 if (loading?.key) sock.sendMessage(jid, { delete: loading.key }).catch(() => {});
             };
 
-            // Strategy chain — Old Bot yt-dlp first, then APIs, session cookie last resort
+            // Strategy chain — fast direct resolvers first, yt-dlp/heavy scrapers as fallbacks
             const STRATEGIES = [
-                { name: 'Old Bot yt-dlp',   fn: () => tryOldBotYtDlp(url)     },
-                { name: 'cobalt.tools',    fn: () => tryCobalt(url)         },
-                { name: 'AllDL',           fn: () => tryAllDl(url)          },
-                { name: 'GraphQL',         fn: () => tryGraphQL(url)         },
-                { name: 'Mobile API',      fn: () => tryMobileApi(url)       },
+                ...(loadSession() ? [{ name: 'Session Cookie', fn: () => trySessionCookie(url) }] : []),
                 { name: 'Embed Page',      fn: () => tryEmbedPage(url)       },
-                { name: 'Parallel APIs',   fn: () => tryParallelApis(url)    },
-                { name: 'SnipSave',        fn: () => trySnapsave(url)        },
-                { name: 'iGram',           fn: () => tryIgram(url)           },
+                { name: 'GraphQL',         fn: () => tryGraphQL(url)         },
                 { name: 'NPM Package',     fn: () => tryNpmPackage(url)      },
+                { name: 'AllDL',           fn: () => tryAllDl(url)           },
+                { name: 'Mobile API',      fn: () => tryMobileApi(url)       },
+                { name: 'Old Bot yt-dlp',  fn: () => tryOldBotYtDlp(url)     },
+                { name: 'SnipSave',        fn: () => trySnapsave(url)        },
+                { name: 'fastdl',          fn: () => tryFastDl(url)          },
+                { name: 'iGram',           fn: () => tryIgram(url)           },
+                { name: 'Parallel APIs',   fn: () => tryParallelApis(url)    },
                 { name: 'oEmbed',          fn: () => tryOEmbed(url)          },
-                // Session cookie last — requires manual setup via .setigsession
-                { name: 'Session Cookie',  fn: () => trySessionCookie(url)  },
             ];
 
             let items     = null;

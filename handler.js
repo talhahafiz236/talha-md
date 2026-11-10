@@ -87,12 +87,15 @@ const incomingTimestampByJid = new Map();
 function markIncomingArrival(jid, ts = Date.now()) {
     if (!jid) return;
     const minDelay = Math.max(1000, Number(config.MIN_RESPONSE_DELAY_MS) || 1200);
-    incomingTimestampByJid.set(jid, {
+    const entry = {
         ts,
         readyAt: ts + minDelay,
         replied: false,
         composingSent: false,
-    });
+    };
+    incomingTimestampByJid.set(jid, entry);
+    const norm = jidNormalizedUser(jid);
+    if (norm && norm !== jid) incomingTimestampByJid.set(norm, entry);
     if (incomingTimestampByJid.size > 2000) {
         const now = Date.now();
         for (const [k, v] of incomingTimestampByJid.entries()) {
@@ -119,15 +122,26 @@ function isUserFacingMessage(content) {
     return keys.some(k => USER_FACING_MESSAGE_KEYS.has(k));
 }
 
+function getChatCacheKeys(jid, id) {
+    const keys = [];
+    if (jid && id) keys.push(`${jid}-${id}`);
+    const norm = jidNormalizedUser(jid || '');
+    if (norm && id && `${norm}-${id}` !== `${jid}-${id}`) keys.push(`${norm}-${id}`);
+    if (id) keys.push(`id-${id}`);
+    return keys;
+}
+
 function cacheOutgoingMessage(sock, sentMsg) {
-    if (!sentMsg?.key?.id || !sentMsg?.key?.remoteJid || !sentMsg?.message) return;
-    const cacheKey = `${sentMsg.key.remoteJid}-${sentMsg.key.id}`;
+    if (!sentMsg?.key?.id || !sentMsg?.message) return;
     if (!sock.__sentMessageCache) sock.__sentMessageCache = new Map();
-    sock.__sentMessageCache.set(cacheKey, {
+    const entry = {
         message: sentMsg.message,
         timestamp: Date.now(),
-    });
-    while (sock.__sentMessageCache.size > 1000) {
+    };
+    for (const cacheKey of getChatCacheKeys(sentMsg.key.remoteJid, sentMsg.key.id)) {
+        sock.__sentMessageCache.set(cacheKey, entry);
+    }
+    while (sock.__sentMessageCache.size > 1500) {
         const oldest = sock.__sentMessageCache.keys().next().value;
         if (!oldest) break;
         sock.__sentMessageCache.delete(oldest);
@@ -141,10 +155,17 @@ function wrapSocketMessaging(sock) {
     if (!sock || sock.__talhaWrapped || typeof sock.sendMessage !== 'function') return sock;
     sock.__talhaWrapped = true;
     if (!sock.__sentMessageCache) sock.__sentMessageCache = new Map();
+    if (!sock.__chatSendQueues) sock.__chatSendQueues = new Map();
+    if (!sock.__lastSentAtByJid) sock.__lastSentAtByJid = new Map();
+
     if (typeof sock.__getSentMessage !== 'function') {
         sock.__getSentMessage = (key) => {
-            if (!key?.remoteJid || !key?.id) return undefined;
-            return sock.__sentMessageCache.get(`${key.remoteJid}-${key.id}`)?.message;
+            if (!key?.id) return undefined;
+            for (const cacheKey of getChatCacheKeys(key.remoteJid, key.id)) {
+                const hit = sock.__sentMessageCache.get(cacheKey);
+                if (hit?.message) return hit.message;
+            }
+            return undefined;
         };
     }
 
@@ -158,51 +179,85 @@ function wrapSocketMessaging(sock) {
             && isUserFacingMessage(content)
         );
 
-        // Enforce >= MIN_RESPONSE_DELAY_MS (>= 1000ms) from incoming message arrival
-        if (userFacing && !opts?._skipMinDelay) {
-            const turn = incomingTimestampByJid.get(jid);
-            if (turn && !turn.replied) {
-                const minDelay = Math.max(1000, Number(config.MIN_RESPONSE_DELAY_MS) || 1200);
-                const readyAt = Math.max(turn.readyAt || 0, turn.ts + minDelay);
-                const remaining = readyAt - Date.now();
-                if (remaining > 0) {
-                    if (remaining > 200 && !turn.composingSent && typeof sock.sendPresenceUpdate === 'function') {
-                        turn.composingSent = true;
-                        sock.sendPresenceUpdate('composing', jid).catch(() => {});
-                    }
-                    await new Promise(r => setTimeout(r, remaining));
-                }
-                turn.replied = true;
-            }
-        }
-
-        // Clean internal flag if caller passed one
+        // Strip internal control option before forwarding to Baileys
         let sendOpts = opts;
+        const skipMinDelay = Boolean(opts?._skipMinDelay);
         if (opts && Object.prototype.hasOwnProperty.call(opts, '_skipMinDelay')) {
             const { _skipMinDelay: _ignored, ...rest } = opts;
             sendOpts = rest;
         }
 
-        // @lid DM: await prekey session assertion before sending to prevent waiting/drop
-        if (userFacing && typeof jid === 'string' && jid.endsWith('@lid') && typeof sock.assertSessions === 'function') {
-            await sock.assertSessions([jid], false).catch(() => {});
+        const executeSend = async () => {
+            // Enforce >= MIN_RESPONSE_DELAY_MS (>= 1000ms) on EVERY user-facing message
+            // both after the user's incoming command AND between multi-part messages.
+            if (userFacing && !skipMinDelay) {
+                const minDelay = Math.max(1000, Number(config.MIN_RESPONSE_DELAY_MS) || 1200);
+                const queueKey = jidNormalizedUser(jid) || jid;
+                const lastSentAt = sock.__lastSentAtByJid.get(queueKey) || 0;
+                const turn = incomingTimestampByJid.get(jid) || incomingTimestampByJid.get(queueKey);
+
+                let targetAt = lastSentAt ? (lastSentAt + minDelay) : 0;
+                if (turn) {
+                    const turnTarget = (turn.ts || Date.now()) + minDelay;
+                    targetAt = Math.max(targetAt, turnTarget);
+                    turn.replied = true;
+                } else if (!targetAt) {
+                    targetAt = Date.now() + minDelay;
+                }
+
+                const remaining = targetAt - Date.now();
+                if (remaining > 0) {
+                    if (remaining > 150 && typeof sock.sendPresenceUpdate === 'function') {
+                        sock.sendPresenceUpdate('composing', jid).catch(() => {});
+                    }
+                    await new Promise(r => setTimeout(r, remaining));
+                }
+            }
+
+            // Pre-check Signal session for @lid (and assert peer devices) to prevent waiting/mac errors
+            if (userFacing && typeof jid === 'string' && jid.endsWith('@lid') && typeof sock.assertSessions === 'function') {
+                await sock.assertSessions([jid], false).catch(() => {});
+            }
+
+            let res;
+            try {
+                res = await origSendMessage(jid, content, sendOpts);
+            } catch (err) {
+                const msg = String(err?.message || '');
+                if (userFacing && /no sessions|session|prekey|mac|not-acceptable/i.test(msg) && typeof sock.assertSessions === 'function') {
+                    await new Promise(r => setTimeout(r, 400));
+                    await sock.assertSessions([jid], true).catch(() => {});
+                    res = await origSendMessage(jid, content, sendOpts);
+                } else {
+                    throw err;
+                }
+            } finally {
+                if (userFacing) {
+                    const queueKey = jidNormalizedUser(jid) || jid;
+                    sock.__lastSentAtByJid.set(queueKey, Date.now());
+                }
+            }
+
+            if (res) cacheOutgoingMessage(sock, res);
+            return res;
+        };
+
+        // Serialize all user-facing messages per chat so Signal ratchet state never races
+        if (!userFacing || !jid) {
+            return executeSend();
         }
 
-        let res;
+        const queueKey = jidNormalizedUser(jid) || jid;
+        const prev = sock.__chatSendQueues.get(queueKey) || Promise.resolve();
+        const next = prev.catch(() => {}).then(executeSend);
+        sock.__chatSendQueues.set(queueKey, next);
         try {
-            res = await origSendMessage(jid, content, sendOpts);
-        } catch (err) {
-            const msg = String(err?.message || '');
-            if (userFacing && /no sessions|session|prekey|mac|not-acceptable/i.test(msg) && typeof sock.assertSessions === 'function') {
-                await sock.assertSessions([jid], true).catch(() => {});
-                res = await origSendMessage(jid, content, sendOpts);
-            } else {
-                throw err;
+            return await next;
+        } finally {
+            if (sock.__chatSendQueues.get(queueKey) === next) {
+                sock.__chatSendQueues.delete(queueKey);
             }
         }
-
-        if (res) cacheOutgoingMessage(sock, res);
-        return res;
     };
 
     return sock;
@@ -968,7 +1023,7 @@ async function handleMessages(sock, message) {
             }
 
             try {
-                const PLUGIN_TIMEOUT_MS = 60_000;
+                const PLUGIN_TIMEOUT_MS = 120_000;
                 const _timeoutP = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error(`Plugin timed out after ${PLUGIN_TIMEOUT_MS / 1000}s`)), PLUGIN_TIMEOUT_MS)
                 );
