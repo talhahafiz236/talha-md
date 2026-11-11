@@ -52,7 +52,7 @@ const {
     generateMessageIDV2
 } = baileys;
 
-// Minimal in-memory message store (makeInMemoryStore was removed in gifted-baileys)
+// Minimal in-memory message store (makeInMemoryStore is not exported by Baileys)
 function makeInMemoryStore() {
     const messages = new Map(); // jid -> Map(id -> message)
     const MAX_PER_JID = 200;
@@ -511,7 +511,7 @@ async function connectToWhatsApp() {
     // Use the session directory for multi-file auth state
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
-    // gifted-baileys' version fetch URL is broken (404) and adds ~12s delay on startup.
+    // Baileys version lookup can add startup delay when the upstream endpoint is slow.
     // Fetch directly from the upstream WhiskeySockets/Baileys repo with a fast timeout; fall back to pinned version.
     let version = [2, 3000, 1035194821];
     try {
