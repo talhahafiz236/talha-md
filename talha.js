@@ -1624,6 +1624,7 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => res.json({
     status: 'ok',
     bot: config.BOT_NAME,
+    deploymentCommit: process.env.RENDER_GIT_COMMIT || null,
     whatsappConnected: Boolean(global.isWhatsAppConnected),
     pluginsLoaded: Array.isArray(global.plugins) ? global.plugins.length : 0,
     time: new Date().toISOString()
@@ -1635,6 +1636,7 @@ app.get('/ready', (req, res) => {
     res.status(ready ? 200 : 503).json({
         status: ready ? 'ready' : 'not_ready',
         bot: config.BOT_NAME,
+        deploymentCommit: process.env.RENDER_GIT_COMMIT || null,
         whatsappConnected,
         pluginsLoaded,
         time: new Date().toISOString()
