@@ -1028,7 +1028,14 @@ async function handleMessages(sock, message) {
             }
 
             try {
-                const PLUGIN_TIMEOUT_MS = 120_000;
+                const _longRunningMediaCommands = new Set([
+                    'play', 'music', 'song', 'ytsong', 'ytaudio',
+                    'ytmp3', 'ytvid-audio', 'ytaudio2', 'spotify',
+                    'ytmp4', 'download'
+                ]);
+                const PLUGIN_TIMEOUT_MS = _longRunningMediaCommands.has(String(resolvedCommand).toLowerCase())
+                    ? 300_000
+                    : 120_000;
                 const _timeoutP = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error(`Plugin timed out after ${PLUGIN_TIMEOUT_MS / 1000}s`)), PLUGIN_TIMEOUT_MS)
                 );
