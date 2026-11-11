@@ -56,22 +56,25 @@ module.exports = {
             const mime = audioResult.mimetype || 'audio/mpeg';
             const ext = mime.includes('mp4') ? 'm4a' : 'mp3';
 
-            // 1. Send Playable Audio
-            await sock.sendMessage(chatTarget, {
-                audio:    audioPayload,
-                mimetype: mime,
-                ptt:      false,
-                contextInfo
-            }, { quoted: message });
-
-            // 2. Send Downloadable Audio Document with Clean Title
-            const safeName = (track.title || 'song').replace(/[^\w\s-]/g, '').trim().slice(0, 50) || 'song';
-            await sock.sendMessage(chatTarget, {
-                document: audioPayload,
-                mimetype: mime,
-                fileName: `${safeName}.${ext}`,
-                contextInfo
-            }, { quoted: message });
+            // Send one playable/downloadable audio message. Only fall back to a
+            // document if WhatsApp rejects the audio message; a failed duplicate
+            // document must not turn an already delivered song into a false error.
+            try {
+                await sock.sendMessage(chatTarget, {
+                    audio:    audioPayload,
+                    mimetype: mime,
+                    ptt:      false,
+                    contextInfo
+                }, { quoted: message });
+            } catch (audioErr) {
+                const safeName = (track.title || 'song').replace(/[^\\w\\s-]/g, '').trim().slice(0, 50) || 'song';
+                await sock.sendMessage(chatTarget, {
+                    document: audioPayload,
+                    mimetype: mime,
+                    fileName: `${safeName}.${ext}`,
+                    contextInfo
+                }, { quoted: message });
+            }
 
         } catch (err) {
             await sock.sendMessage(chatTarget, {
