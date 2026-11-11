@@ -2,7 +2,8 @@
 
 const axios    = require('axios');
 const { getStr } = require('../lib/theme');
-const OWM_KEY = '060a6bcfa19809c2cd4d97a212b19273';
+const config = require('../config');
+const OWM_KEY = process.env.OPENWEATHER_API_KEY || config.OPENWEATHER_API_KEY || '';
 
 module.exports = {
     commands:    ['weather', 'climate', 'mosam'],
@@ -20,6 +21,9 @@ module.exports = {
         }
 
         const location = args.join(' ');
+        if (!OWM_KEY) {
+            return sock.sendMessage(chatId, { text: '❌ Weather API key is not configured. Add OPENWEATHER_API_KEY to the host secrets.', contextInfo }, { quoted: message });
+        }
         const loading  = await sock.sendMessage(chatId, {
             text: '⏳ Fetching weather data...',
             contextInfo
