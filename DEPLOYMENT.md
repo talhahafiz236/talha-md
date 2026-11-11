@@ -91,3 +91,8 @@ pm2 startup
 Jab bot cloud par deploy ho jaye, to kisi bhi chat mein:
 > `.alive` ya `.ping`  
 likhein. Bot foran uptime, RAM aur latency ka live card send kar dega!
+
+
+### Web pairing portal security
+
+The `/qr` page and `/api/pair` endpoint require HTTP Basic authentication. Set `PAIRING_PORTAL_PASSWORD` in Render to a unique random value of at least 24 characters; use username `owner` in the browser prompt. If the variable is missing or shorter than 24 characters, web pairing stays disabled. WhatsApp chat pairing commands are not affected.
