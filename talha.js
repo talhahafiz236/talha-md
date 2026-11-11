@@ -1631,7 +1631,7 @@ function requirePairingPortalAuth(req, res, next) {
         return res.status(503).send('Web pairing is disabled. Set PAIRING_PORTAL_PASSWORD (minimum 24 characters) in the service environment.');
     }
 
-    const match = /^Basic\\s+(.+)$/i.exec(req.headers.authorization || '');
+    const match = /^Basic\s+(.+)$/i.exec(req.headers.authorization || '');
     if (match) {
         try {
             const decoded = Buffer.from(match[1], 'base64').toString('utf8');
