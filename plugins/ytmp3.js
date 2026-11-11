@@ -36,19 +36,21 @@ module.exports = {
             const mime = audioResult.mimetype || 'audio/mpeg';
             const ext = mime.includes('mp4') ? 'm4a' : 'mp3';
 
-            await sock.sendMessage(chatTarget, {
-                audio:    audioPayload,
-                mimetype: mime,
-                ptt:      false,
-                contextInfo
-            }, { quoted: message });
-
-            await sock.sendMessage(chatTarget, {
-                document: audioPayload,
-                mimetype: mime,
-                fileName: `${safeName}.${ext}`,
-                contextInfo
-            }, { quoted: message });
+            try {
+                await sock.sendMessage(chatTarget, {
+                    audio:    audioPayload,
+                    mimetype: mime,
+                    ptt:      false,
+                    contextInfo
+                }, { quoted: message });
+            } catch (audioErr) {
+                await sock.sendMessage(chatTarget, {
+                    document: audioPayload,
+                    mimetype: mime,
+                    fileName: safeName + '.' + ext,
+                    contextInfo
+                }, { quoted: message });
+            }
 
         } catch (err) {
             await sock.sendMessage(chatTarget, {
