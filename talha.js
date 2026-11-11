@@ -83,6 +83,7 @@ const path = require('path');
 const os = require('os');
 const zlib = require('zlib'); // Added for session decompression
 const express = require('express');
+const crypto = require('crypto');
 const P = require('pino');
 const QRCode = require('qrcode');
 const { handleMessages, wrapSocketMessaging } = require('./handler');
@@ -1624,7 +1625,31 @@ app.get('/health', (req, res) => res.json({ status: 'ok', bot: config.BOT_NAME, 
 app.get('/ping', (req, res) => res.send('pong'));
 
 // ── WhatsApp Connect Web View (QR Code + Pairing Code Portal) ────────────────
-app.get('/qr', (req, res) => {
+function requirePairingPortalAuth(req, res, next) {
+    const expectedPassword = process.env.PAIRING_PORTAL_PASSWORD || '';
+    if (expectedPassword.length < 24) {
+        return res.status(503).send('Web pairing is disabled. Set PAIRING_PORTAL_PASSWORD (minimum 24 characters) in the service environment.');
+    }
+
+    const match = /^Basic\\s+(.+)$/i.exec(req.headers.authorization || '');
+    if (match) {
+        try {
+            const decoded = Buffer.from(match[1], 'base64').toString('utf8');
+            const splitAt = decoded.indexOf(':');
+            const username = splitAt >= 0 ? decoded.slice(0, splitAt) : '';
+            const suppliedPassword = splitAt >= 0 ? decoded.slice(splitAt + 1) : '';
+            const expected = Buffer.from(expectedPassword);
+            const supplied = Buffer.from(suppliedPassword);
+            const passwordMatches = supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+            if (username === 'owner' && passwordMatches) return next();
+        } catch { /* malformed Basic auth */ }
+    }
+
+    res.set('WWW-Authenticate', 'Basic realm="TALHA-MD Owner Pairing", charset="UTF-8"');
+    return res.status(401).send('Owner pairing authentication required.');
+}
+
+app.get('/qr', requirePairingPortalAuth, (req, res) => {
     if (global.isWhatsAppConnected) {
         return res.send(`<!DOCTYPE html>
 <html>
@@ -1748,7 +1773,7 @@ app.get('/qr', (req, res) => {
 
 // API endpoint for interactive on-demand pairing code
 app.use(express.json());
-app.post('/api/pair', async (req, res) => {
+app.post('/api/pair', requirePairingPortalAuth, async (req, res) => {
     const ownerNumber = (config.OWNER_NUMBER || '923426767199').replace(/\D/g, '');
     const requestedPhone = (req.body?.phone || '').replace(/\D/g, '');
 
