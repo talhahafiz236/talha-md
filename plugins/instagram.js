@@ -59,37 +59,6 @@ async function tryOldBotYtDlp(rawInput) {
     });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STRATEGY 0: cobalt.tools (API-based, no auth needed — primary)
-// ═══════════════════════════════════════════════════════════════════════════
-async function tryCobalt(url) {
-    const r = await axios.post('https://api.cobalt.tools/', { url, downloadMode: 'auto' }, {
-        headers: {
-            'Accept':       'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent':   UA_BROWSER,
-        },
-        timeout: 20000,
-    });
-    const d = r.data;
-    if (d?.status === 'redirect' || d?.status === 'stream') {
-        if (!d.url) throw new Error('cobalt: no url');
-        return [{ url: d.url, type: d.url.includes('.mp4') ? 'video' : 'image' }];
-    }
-    if (d?.status === 'picker' && Array.isArray(d.picker)) {
-        const items = d.picker.map(i => ({
-            url:  i.url,
-            type: (i.type === 'video' || (i.url || '').includes('.mp4')) ? 'video' : 'image',
-        })).filter(i => i.url);
-        if (!items.length) throw new Error('cobalt: picker empty');
-        return items;
-    }
-    if (d?.status === 'error' || d?.error?.code) {
-        throw new Error(`cobalt: ${d?.error?.code || d?.text || 'error'}`);
-    }
-    throw new Error('cobalt: unexpected response');
-}
-
 const SESSION_FILE = path.join(__dirname, '../data/ig_session.json');
 
 // ─── Session persistence ────────────────────────────────────────────────────
@@ -636,12 +605,14 @@ module.exports = [
             // Strategy chain — fast direct resolvers first, yt-dlp/heavy scrapers as fallbacks
             const STRATEGIES = [
                 ...(loadSession() ? [{ name: 'Session Cookie', fn: () => trySessionCookie(url) }] : []),
+                // Prefer the server-side extractor before slower public scraping services.
+                // Render's Docker image includes yt-dlp, Node.js, and ffmpeg.
+                { name: 'yt-dlp',          fn: () => tryOldBotYtDlp(url)     },
                 { name: 'Embed Page',      fn: () => tryEmbedPage(url)       },
                 { name: 'GraphQL',         fn: () => tryGraphQL(url)         },
                 { name: 'NPM Package',     fn: () => tryNpmPackage(url)      },
                 { name: 'AllDL',           fn: () => tryAllDl(url)           },
                 { name: 'Mobile API',      fn: () => tryMobileApi(url)       },
-                { name: 'Old Bot yt-dlp',  fn: () => tryOldBotYtDlp(url)     },
                 { name: 'SnipSave',        fn: () => trySnapsave(url)        },
                 { name: 'fastdl',          fn: () => tryFastDl(url)          },
                 { name: 'iGram',           fn: () => tryIgram(url)           },
