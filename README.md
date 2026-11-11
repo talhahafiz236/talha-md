@@ -506,3 +506,8 @@ Any command can show its usage with either `.help <command>` or `<prefix><comman
 `TALHA MD Bot — Smart, Fast & Always Online.`
 
 </div>
+
+
+### Bot readiness monitoring
+
+For UptimeRobot, monitor `https://<your-render-service>/ready` using HTTP status checks. A `200` means WhatsApp is connected and plugins are loaded; `503` means the service process is responding but the bot is not ready. The `/ping` endpoint is only a keep-alive response and is not a WhatsApp health check.
