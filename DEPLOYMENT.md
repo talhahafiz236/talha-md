@@ -96,3 +96,8 @@ likhein. Bot foran uptime, RAM aur latency ka live card send kar dega!
 ### Web pairing portal security
 
 The `/qr` page and `/api/pair` endpoint require HTTP Basic authentication. Set `PAIRING_PORTAL_PASSWORD` in Render to a unique random value of at least 24 characters; use username `owner` in the browser prompt. If the variable is missing or shorter than 24 characters, web pairing stays disabled. WhatsApp chat pairing commands are not affected.
+
+
+### Uptime monitoring
+
+Use `/ready` as the UptimeRobot HTTP monitor URL. It returns HTTP 200 only when WhatsApp is connected and plugins have loaded; otherwise it returns HTTP 503 so the monitor reports the bot as unavailable. Keep `/ping` for the app's self-ping only; it always responds with `pong` and does not prove WhatsApp connectivity. The `/health` response includes connection/plugin counts for read-only diagnosis.
