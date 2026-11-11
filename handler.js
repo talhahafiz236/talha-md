@@ -172,6 +172,7 @@ function wrapSocketMessaging(sock) {
     const origSendMessage = sock.sendMessage.bind(sock);
 
     sock.sendMessage = async function (jid, content, opts = {}) {
+        content = withNewsletterContext(jid, content);
         const userFacing = Boolean(
             jid
             && !String(jid).endsWith('@newsletter')
