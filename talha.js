@@ -1621,7 +1621,25 @@ app.get('/', (req, res) => {
     if (fs.existsSync(html)) return res.sendFile(html);
     res.send(`<h2>✅ ${config.BOT_NAME} is Running!</h2>`);
 });
-app.get('/health', (req, res) => res.json({ status: 'ok', bot: config.BOT_NAME, time: new Date().toISOString() }));
+app.get('/health', (req, res) => res.json({
+    status: 'ok',
+    bot: config.BOT_NAME,
+    whatsappConnected: Boolean(global.isWhatsAppConnected),
+    pluginsLoaded: Array.isArray(global.plugins) ? global.plugins.length : 0,
+    time: new Date().toISOString()
+}));
+app.get('/ready', (req, res) => {
+    const whatsappConnected = Boolean(global.isWhatsAppConnected);
+    const pluginsLoaded = Array.isArray(global.plugins) ? global.plugins.length : 0;
+    const ready = whatsappConnected && pluginsLoaded > 0;
+    res.status(ready ? 200 : 503).json({
+        status: ready ? 'ready' : 'not_ready',
+        bot: config.BOT_NAME,
+        whatsappConnected,
+        pluginsLoaded,
+        time: new Date().toISOString()
+    });
+});
 app.get('/ping', (req, res) => res.send('pong'));
 
 // ── WhatsApp Connect Web View (QR Code + Pairing Code Portal) ────────────────
