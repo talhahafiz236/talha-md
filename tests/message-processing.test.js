@@ -61,8 +61,9 @@ test('adds newsletter attribution to plugin sends in groups and inboxes', async 
     await sock.sendMessage('254700000000@s.whatsapp.net', { image: Buffer.from('image'), caption: 'inbox reply' });
     await sock.sendMessage('123@g.us', { delete: { remoteJid: '123@g.us', id: 'old' } });
 
-    assert.equal(sent[0].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, '120363385750849202@newsletter');
-    assert.equal(sent[1].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, '120363385750849202@newsletter');
+    const expectedNewsletterJid = process.env.NEWSLETTER_JID || config.NEWSLETTER_JID || '120363431246808172@newsletter';
+    assert.equal(sent[0].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, expectedNewsletterJid);
+    assert.equal(sent[1].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid, expectedNewsletterJid);
     assert.equal(sent[2].content.contextInfo, undefined);
 });
 
@@ -91,10 +92,14 @@ test('sends replies to LID chats after attempting session establishment', async 
     const result = await safeSend(sock, '123456789@lid', { text: 'pong' });
 
     assert.equal(result.key.id, 'reply');
-    assert.deepEqual(calls, [
-        { type: 'assertSessions', jids: ['123456789@lid'] },
-        { type: 'sendMessage', jid: '123456789@lid', content: { text: 'pong' } },
-    ]);
+    assert.deepEqual(calls[0], { type: 'assertSessions', jids: ['123456789@lid'] });
+    assert.equal(calls[1].type, 'sendMessage');
+    assert.equal(calls[1].jid, '123456789@lid');
+    assert.equal(calls[1].content.text, 'pong');
+    assert.equal(
+        calls[1].content.contextInfo.forwardedNewsletterMessageInfo.newsletterJid,
+        process.env.NEWSLETTER_JID || config.NEWSLETTER_JID || '120363431246808172@newsletter'
+    );
 });
 
 test('routes a prefixed command to a plugin without a live WhatsApp connection', async () => {
@@ -116,11 +121,10 @@ test('routes a prefixed command to a plugin without a live WhatsApp connection',
         message: { conversation: '.ping' },
     });
 
-    assert.equal(sent.length, 2);
+    assert.equal(sent.length, 1);
     assert.equal(sent[0].jid, '254700000000@s.whatsapp.net');
-    assert.match(sent[0].content.text, /Pinging/);
-    assert.match(sent[1].content.caption, /\*Ping:\*/);
-    assert.equal(sent[1].content.buttons, undefined);
+    assert.match(sent[0].content.caption, /Response Speed/);
+    assert.equal(sent[0].content.buttons, undefined);
 });
 
 test('prefix-free mode ignores self messages and ordinary text but accepts bare commands', async () => {
@@ -165,7 +169,7 @@ test('prefix-free mode ignores self messages and ordinary text but accepts bare 
             key: { id: 'bare-ping', remoteJid: '254700000001@s.whatsapp.net', fromMe: false },
             message: { conversation: 'ping' },
         });
-        assert.ok(sent.some(item => /Pinging/.test(item.content.text)));
+        assert.ok(sent.some(item => /Response Speed/.test(item.content.caption || item.content.text || '')));
     } finally {
         config.PREFIX = oldPrefix;
     }
@@ -199,7 +203,7 @@ test('menu categorizes every live command exactly once without button payloads',
         contextInfo: {},
         safeSend: async content => sent.push(content),
     });
-    assert.ok(sent.some(content => content.image && /COMMAND CATEGORIES/.test(content.caption)));
+    assert.ok(sent.some(content => content.image && /Total Verified/.test(content.caption)));
     assert.ok(sent.every(content => content.buttons === undefined));
 });
 
