@@ -30,6 +30,11 @@ module.exports = {
             }, { quoted: message });
         }
 
+        const apiKey = process.env.AUDD_API_KEY || require('../config').AUDD_API_KEY || '';
+        if (!apiKey) {
+            return safeSend({ text: '❌ Song identification API key is not configured. Add AUDD_API_KEY to the host secrets.', contextInfo }, { quoted: message });
+        }
+
         await safeSend({ text: '🎧 Identifying song...', contextInfo }, { quoted: message });
 
         let tempFile = null;
@@ -44,7 +49,7 @@ module.exports = {
 
             const form = new FormData();
             form.append('return', 'apple_music,spotify');
-            form.append('api_token', 'test');
+            form.append('api_token', apiKey);
             form.append('file', new Blob([buffer]), 'audio.ogg');
 
             const res = await axios.post('https://api.audd.io/', form, { timeout: 30000 });

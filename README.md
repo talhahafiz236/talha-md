@@ -77,7 +77,7 @@
 
 | Platform | Badge | Notes |
 |:--------:|:-----:|:------|
-| <img src="https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=black" /> | [![Deploy to Render](https://img.shields.io/badge/Deploy%20Now-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://render.com) | Docker + `/health` ready · 24/7 online |
+| <img src="https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=black" /> | [![Deploy to Render](https://img.shields.io/badge/Deploy%20Now-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://render.com) | Docker + `/health` ready · Free plan may sleep |
 | <img src="https://img.shields.io/badge/Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white" /> | [![Deploy on Railway](https://img.shields.io/badge/Deploy%20Now-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)](https://railway.app/new) | Docker auto-configured |
 | <img src="https://img.shields.io/badge/Koyeb-121212?style=flat-square&logo=koyeb&logoColor=white" /> | [![Deploy on Koyeb](https://img.shields.io/badge/Deploy%20Now-Koyeb-121212?style=for-the-badge&logo=koyeb&logoColor=white)](https://app.koyeb.com) | Dockerfile ready |
 | <img src="https://img.shields.io/badge/Replit-F26207?style=flat-square&logo=replit&logoColor=white" /> | [![Deploy on Replit](https://img.shields.io/badge/Deploy%20Now-Replit-F26207?style=for-the-badge&logo=replit&logoColor=white)](https://replit.com) | Browser IDE · Edit live |
@@ -96,7 +96,7 @@
 | **1** | Connect GitHub repo `talhahafiz236/talha-md` on [render.com](https://render.com) |
 | **2** | Runtime: **Docker** (`render.yaml` & `Dockerfile` ready, health check `/health`) |
 | **3** | Set `SESSION_ID`, `OWNER_NUMBER` (`923426767199`), `BOT_NAME` (`TALHA MD`) |
-| **4** | Deploy — bot goes live 24/7 ✅ |
+| **4** | Deploy. Free instances may sleep after 15 minutes without inbound traffic; choose a paid instance for always-on service. |
 
 </details>
 
@@ -191,6 +191,17 @@ pm2 save && pm2 startup
 | `PREFIX` | `.` | Command prefix (`.` `,` `!` `/` or comma-separated) |
 | `MODE` | `public` | `public` · `private` · `group` · `inbox` |
 | `THEME` | `talha` | Bot personality — see [Themes](#-themes) |
+
+### 🔌 Optional command API keys
+
+These commands need their own provider key. Add the keys you use to Render's Environment settings (or local `config.env`); do not put real keys in Git:
+
+| Variable | Commands |
+|---|---|
+| `OPENWEATHER_API_KEY` | `.weather`, `.climate`, `.mosam` |
+| `VIRUSTOTAL_API_KEY` | `.scanurl`, `.urlscan`, `.checksafe` |
+| `AUDD_API_KEY` | `.shazam`, `.identify` |
+| `OCR_SPACE_API_KEY` | `.ocr`, `.readtext`, `.textfromimage` |
 
 ### 🧠 Agent v2
 

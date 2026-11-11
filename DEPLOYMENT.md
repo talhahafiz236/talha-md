@@ -42,6 +42,10 @@ TALHA-MD~eyJub2lzZUtleSI...
    | `OWNER_NUMBER` | `923426767199` |
    | `BOT_NAME` | `TALHA-MD` |
    | `MODE` | `both` |
+   | `OPENWEATHER_API_KEY` | Optional: weather commands |
+   | `VIRUSTOTAL_API_KEY` | Optional: URL scan commands |
+   | `AUDD_API_KEY` | Optional: Shazam/song ID commands |
+   | `OCR_SPACE_API_KEY` | Optional: OCR commands |
 
 6. **Deploy Par Click Karein:**
    * **Create Web Service** par click karein!

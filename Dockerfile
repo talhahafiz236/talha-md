@@ -33,6 +33,7 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y ffmpeg python3 curl ca-certificates && \
     curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
+    printf '%s\n' '--js-runtimes node' > /etc/yt-dlp.conf && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 COPY --from=build /app /app
