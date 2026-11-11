@@ -1,8 +1,9 @@
 'use strict';
 
 const axios  = require('axios');
+const config = require('../config');
 
-const VT_KEY = '23e62ab81fe1c82d865f39fc674dead42b1ae2b3079fffebf96be5b19aebcf47';
+const VT_KEY = process.env.VIRUSTOTAL_API_KEY || config.VIRUSTOTAL_API_KEY || '';
 
 module.exports = {
     commands:    ['scanurl', 'urlscan', 'checksafe'],
@@ -27,6 +28,10 @@ module.exports = {
                 text: '⚠️ Invalid URL format.',
                 contextInfo
             }, { quoted: message });
+        }
+
+        if (!VT_KEY) {
+            return sock.sendMessage(chatId, { text: '❌ VirusTotal API key is not configured. Add VIRUSTOTAL_API_KEY to the host secrets.', contextInfo }, { quoted: message });
         }
 
         await sock.sendMessage(chatId, {
