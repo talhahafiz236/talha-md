@@ -53,6 +53,10 @@ module.exports = {
     AGENT_MODEL:           process.env.AGENT_MODEL || process.env.OPENAI_MODEL || 'gpt-4o-mini',
     AGENT_MAX_STEPS:       parseInt(process.env.AGENT_MAX_STEPS || '5', 10),
     GEMINI_API_KEY:        process.env.GEMINI_API_KEY || '',
+    OPENWEATHER_API_KEY:    process.env.OPENWEATHER_API_KEY || '',
+    VIRUSTOTAL_API_KEY:     process.env.VIRUSTOTAL_API_KEY || '',
+    AUDD_API_KEY:           process.env.AUDD_API_KEY || '',
+    OCR_SPACE_API_KEY:      process.env.OCR_SPACE_API_KEY || '',
     DATABASE_URL:          process.env.DATABASE_URL || '',
     MIN_RESPONSE_DELAY_MS: Math.max(1000, parseInt(process.env.MIN_RESPONSE_DELAY_MS || '1200', 10) || 1200),
 };
