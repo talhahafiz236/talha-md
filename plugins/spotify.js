@@ -87,19 +87,21 @@ module.exports = {
                 await sock.sendMessage(chatTarget, { text: caption, contextInfo }, { quoted: message }).catch(() => {});
             }
 
-            await sock.sendMessage(chatTarget, {
-                audio:    audioPayload,
-                mimetype: audioResult.mimetype || 'audio/mpeg',
-                ptt:      false,
-                contextInfo
-            }, { quoted: message });
-
-            await sock.sendMessage(chatTarget, {
-                document: audioPayload,
-                mimetype: 'audio/mpeg',
-                fileName: `${safeName}.mp3`,
-                contextInfo
-            }, { quoted: message });
+            try {
+                await sock.sendMessage(chatTarget, {
+                    audio:    audioPayload,
+                    mimetype: audioResult.mimetype || 'audio/mpeg',
+                    ptt:      false,
+                    contextInfo
+                }, { quoted: message });
+            } catch (audioErr) {
+                await sock.sendMessage(chatTarget, {
+                    document: audioPayload,
+                    mimetype: audioResult.mimetype || 'audio/mpeg',
+                    fileName: safeName + (audioResult.mimetype?.includes('mp4') ? '.m4a' : '.mp3'),
+                    contextInfo
+                }, { quoted: message });
+            }
         } catch (e) {
             await deleteLoading();
             await sock.sendMessage(chatTarget, {
