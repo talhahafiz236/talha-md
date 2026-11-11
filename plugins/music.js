@@ -67,7 +67,7 @@ module.exports = {
                     contextInfo
                 }, { quoted: message });
             } catch (audioErr) {
-                const safeName = (track.title || 'song').replace(/[^\\w\\s-]/g, '').trim().slice(0, 50) || 'song';
+                const safeName = (track.title || 'song').replace(/[^\w\s-]/g, '').trim().slice(0, 50) || 'song';
                 await sock.sendMessage(chatTarget, {
                     document: audioPayload,
                     mimetype: mime,
