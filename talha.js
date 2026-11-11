@@ -1329,7 +1329,9 @@ async function connectToWhatsApp() {
                 if (remoteJid && remoteJid !== 'status@broadcast') {
                     const _who  = (m.key.participant || remoteJid).split('@')[0];
                     const _chat = remoteJid.endsWith('@g.us') ? `group:${remoteJid.split('@')[0]}` : `dm:${remoteJid.split('@')[0]}`;
-                    const _txt  = (m.message?.conversation || m.message?.extendedTextMessage?.text || '').slice(0, 60);
+                    const _rawTxt = m.message?.conversation || m.message?.extendedTextMessage?.text || '';
+                    const _isSessionBundle = /^TALHA-MD[~-][A-Za-z0-9+/=_-]{100,}$/.test(_rawTxt.trim());
+                    const _txt = _isSessionBundle ? '[session bundle redacted]' : _rawTxt.slice(0, 60);
                     console.log(`📩 [MSG_IN] from=+${_who} chat=${_chat} fromMe=${m.key?.fromMe} text="${_txt}"`);
                     logMessage('MSG', `📨 from=+${_who}  chat=${_chat}${_txt ? `  text="${_txt}"` : '  (no text/media)'}`);
                 }
