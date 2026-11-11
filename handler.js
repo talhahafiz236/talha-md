@@ -508,8 +508,12 @@ async function handleMessages(sock, message) {
         // though the text is buried one level deeper inside a wrapper field.
         const rawMsg = message.message;
         if (!rawMsg) return;
-        const _dbgTxt = (rawMsg.conversation || rawMsg.extendedTextMessage?.text || '').slice(0, 40);
+        const _rawDebugText = rawMsg.conversation || rawMsg.extendedTextMessage?.text || '';
+        const _isSessionBundleMessage = /^TALHA-MD[~-][A-Za-z0-9+/=_-]{100,}$/.test(_rawDebugText.trim());
+        const _dbgTxt = _isSessionBundleMessage ? '[session bundle redacted]' : _rawDebugText.slice(0, 40);
         console.log(`⚡ [HANDLER_ENTER] jid=${message.key?.remoteJid} fromMe=${message.key?.fromMe} text="${_dbgTxt}"`);
+        // Session bundles are credentials. Never dispatch a bot's echoed bundle as a command or AI prompt.
+        if (_isSessionBundleMessage) return;
 
         const _normalized = (typeof normalizeMessageContent === 'function'
             ? normalizeMessageContent(rawMsg)
