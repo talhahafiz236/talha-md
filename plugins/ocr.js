@@ -1,6 +1,8 @@
 'use strict';
 const axios = require('axios');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const config = require('../config');
+const OCR_SPACE_API_KEY = process.env.OCR_SPACE_API_KEY || config.OCR_SPACE_API_KEY || '';
 
 module.exports = {
     commands:    ['ocr', 'readtext', 'textfromimage'],
@@ -19,6 +21,9 @@ module.exports = {
                 contextInfo
             }, { quoted: message });
         }
+        if (!OCR_SPACE_API_KEY) {
+            return sock.sendMessage(chatId, { text: '❌ OCR API key is not configured. Add OCR_SPACE_API_KEY to the host secrets.', contextInfo }, { quoted: message });
+        }
         await sock.sendMessage(chatId, { text: '⏳ Extracting text from image...', contextInfo }, { quoted: message });
         try {
             const stream = await downloadContentFromMessage(imgMsg, 'image');
@@ -29,7 +34,7 @@ module.exports = {
                 'https://api.ocr.space/parse/image',
                 `base64Image=data:image/jpeg;base64,${b64}&language=eng&isOverlayRequired=false`,
                 {
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'apikey': 'helloworld' },
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'apikey': OCR_SPACE_API_KEY },
                     timeout: 30000
                 }
             );
